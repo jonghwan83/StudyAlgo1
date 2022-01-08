@@ -1,1 +1,1 @@
-# StudyAlgo1
+Study and Practice
