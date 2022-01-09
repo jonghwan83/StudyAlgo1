@@ -13,21 +13,40 @@
 당연히 8*8 크기는 아무데서나 골라도 된다. 
 지민이가 다시 칠해야 하는 정사각형의 최소 개수를 구하는 프로그램을 작성하시오.
 
-8 8
-WBWBWBWB
-BWBWBWBW
-WBWBWBWB
-BWBBBWBW
-WBWBWBWB
-BWBWBWBW
-WBWBWBWB
-BWBWBWBW
+10 13
+BBBBBBBBWBWBW
+BBBBBBBBBWBWB
+BBBBBBBBWBWBW
+BBBBBBBBBWBWB
+BBBBBBBBWBWBW
+BBBBBBBBBWBWB
+BBBBBBBBWBWBW
+BBBBBBBBBWBWB
+WWWWWWWWWWBWB
+WWWWWWWWWWBWB
 '''
 
 import sys
 
 N, M = map(int, sys.stdin.readline().split())
-board = [[] for _ in range(M)]
-for i in range(M):
-    board[i] = list(map(str, sys.stdin.readline().split()))
+board = []
+for _ in range(N):
+    board.append(sys.stdin.readline().strip())
 
+checker = board[0][0]
+
+count = 0
+for i in range(len(board)):
+    for j in range(len(board[i])):
+        if (i % 2 == 0):
+            if (j % 2 == 0) & (board[i][j] != checker):
+                count += 1
+            elif (j % 2 == 1) & (board[i][j] == checker):
+                count += 1
+        else:
+            if (j % 2 == 1) & (board[i][j] != checker):
+                count += 1
+            elif (j % 2 == 0) & (board[i][j] == checker):
+                count += 1
+
+print(count)
