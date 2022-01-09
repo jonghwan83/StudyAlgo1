@@ -11,3 +11,22 @@ N명의 집단에서 각 사람의 덩치 등수는 자신보다 더 "큰 덩치
 만일 자신보다 더 큰 덩치의 사람이 k명이라면 그 사람의 덩치 등수는 k+1이 된다. 
 이렇게 등수를 결정하면 같은 덩치 등수를 가진 사람은 여러 명도 가능하다. 아래는 5명으로 이루어진 집단에서 각 사람의 덩치와 그 등수가 표시된 표이다.
 '''
+
+import sys
+
+n = int(sys.stdin.readline())
+WH = [0 for _ in range(n)]
+for i in range(n):
+    WH[i] = list(map(int, sys.stdin.readline().split()))
+
+ranks = [[0, 0, 0] for _ in range(len(WH))]
+for i in range(len(WH)):
+    count = 1
+    for j in range(len(WH)):
+        if (i != j) & (WH[i][0] < WH[j][0]) & (WH[i][1] < WH[j][1]):
+            count += 1
+    ranks[i] = count
+
+for l in ranks:
+    print(l, end=' ')
+print()
