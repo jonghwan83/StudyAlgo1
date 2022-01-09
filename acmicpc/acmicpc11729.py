@@ -17,3 +17,20 @@
 base problem n = 1
 '''
 
+import sys
+
+steps = []
+def solve_hanoi(n, source, target, aux):
+	if (n == 1):
+		steps.append([source, target])
+		return
+	solve_hanoi(n-1, source, aux, target)
+	steps.append([source, target])
+	solve_hanoi(n-1, aux, target, source)
+
+n = int(sys.stdin.readline())
+
+solve_hanoi(n, 1, 3, 2)
+print(len(steps))
+for s in steps:
+	print(s[0], s[1])
