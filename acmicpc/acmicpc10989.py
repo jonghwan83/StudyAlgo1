@@ -1,17 +1,13 @@
 import sys
 
 T = int(sys.stdin.readline())
-lst = []
+lst = [0 for _ in range(10001)]
 for _ in range(T):
-    lst.append(int(sys.stdin.readline()))
+    lst[int(sys.stdin.readline())] += 1
 
-index = [i for i in range(max(lst)+1)]
-count = [0 for _ in range(max(lst)+1)]
-
-for val in lst:
-    count[val] += 1
-
-for i in range(1, len(count)):
-    count[i+1] += count[i]
-
-print(count)
+for i in range(len(lst)):
+    if (lst[i] != 0):
+        n = lst[i]
+        while (n > 0):
+            print(i)
+            n -= 1
