@@ -3,9 +3,9 @@
 using namespace std;
 
 int max(int a, int b, int c){
-    if (a > b && a > c){
+    if (a >= b && a >= c){
         return a;
-    } else if (c > a && c > b){
+    } else if (c >= a && c >= b){
         return c;
     } else {
         return b;
@@ -28,35 +28,25 @@ int main(){
         dp[i] = 0;
     }
 
-    for (int i=0; i < n; i++){
-        cout << Ti[i] << " " << Pi[i] << endl;
-    }
+     for (int i=0; i < n; i++){
+         if (i + Ti[i] <= n) {
+             dp[i] = Pi[i];
+             for (int j = 0; j <= i; j++) {
+                 if (j + Ti[j] <= i) {
+                     dp[i] = max(dp[j] + Pi[i], Pi[i], dp[i]);
+                 }
+             }
+         }
+     }
 
-    // dp[0] = Pi[0];
+     int ans = 0;
+     for (int i=0; i < n; i++){
+         if (dp[i] > ans){
+             ans = dp[i];
+         }
+     }
 
-    // for (int i=1; i < n; i++){
-    //     for (int j=0; j <= i; j++){
-    //         if (j + Ti[j] <= i){
-    //             cout << i << " " << dp[j] + Pi[i] << " " << Pi[i] << endl;
-    //             dp[i] = max(dp[j] + Pi[i], Pi[i], dp[i]);
-    //         }
-    //     }
-    // }
-
-    // cout << "----" << endl;
-
-    // for (int i=0; i < n; i++){
-    //     cout << dp[i] << endl;
-    // }
-
-    // int ans = 0;
-    // for (int i=0; i < n; i++){
-    //     if (dp[i] > ans){
-    //         ans = dp[i];
-    //     }
-    // }
-
-    // cout << ans << "\n";
+     cout << ans << "\n";
 
     return 0;
 }
