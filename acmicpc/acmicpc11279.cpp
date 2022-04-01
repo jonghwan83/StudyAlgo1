@@ -56,7 +56,7 @@ public:
 					
 					cNode = cNode->next;
 				}
-				if (cNode->next != NULL) {
+				if (cNode->next == NULL) {
 					cNode->next = newNode;
 				}
 				else {
