@@ -3,11 +3,10 @@
 using namespace std;
 
 class Node {
-public:
+public:	
 	int data;
 	Node* next;
-	Node* prev;
-
+	
 	Node(int a) {
 		data = a;
 		next = NULL;
@@ -16,52 +15,56 @@ public:
 
 class Queue {
 public:
-	Node* head;
-	Node* tail;
 	int length;
+	Node* head;
 
 	Queue() {
-		head = NULL;
-		tail = NULL;
 		length = 0;
+		head = NULL;
 	}
 	void push(int a) {
-		Node* new_node = new Node(a);
-
+		Node* newNode = new Node(a);
+		
 		if (length == 0) {
-			head = new_node;
-			tail = new_node;
-			head->next = tail;
-			tail->prev = head;
+			head = newNode;
 		}
-		else {
-			if (new_node->data > head->data) {
-				Node* first;
-				first = head;
-				new_node->next = first;
-				head = new_node;
-				first->prev = head;
+		else if (length == 1) {
+			Node* cNode;
+			cNode = head;
+
+			if (cNode->data > newNode->data) {
+				head->next = newNode;
 			}
 			else {
-				Node* second;
-				second = head->next;
-				head->next = new_node;
-				new_node->next = second;
-				new_node->prev = head;
-				second->prev = new_node;
+				newNode->next = cNode;
+				head = newNode;
 			}
-			while (new_node->data < new_node->next->data) {
-				Node* nxt;
-				Node* prv;
-				
-				nxt = new_node->next;
-				prv = new_node->prev;
-
-				nxt->prev = prv;
-				prv->next = nxt;
-
-				new_node->next = nxt->next;
-				new_node->prev = nxt;
+		}
+		else {
+			Node* cNode;
+			cNode = head;
+			
+			if (newNode->data > cNode->data) {
+				newNode->next = cNode;
+				head = newNode;
+			}
+			else {
+				while (cNode->next != NULL) {
+					if (newNode->data > cNode->data) {
+						break;
+					}
+					
+					cNode = cNode->next;
+				}
+				if (cNode->next != NULL) {
+					cNode->next = newNode;
+				}
+				else {
+					Node* nNode;
+					nNode = cNode->next;
+					cNode->next = newNode;
+					newNode->next = nNode;
+				}
 			}
 		}
 		length++;
@@ -72,35 +75,38 @@ public:
 			return 0;
 		}
 		else {
-			int output;
-			output = head->data;
-
-			if (length > 0) {
+			int answer = head->data;
+			if (length > 1) {
 				Node* second;
 				second = head->next;
-				second->prev = NULL;
+
 				head = second;
 			}
+			else {
+				head = NULL;
+			}
 			length--;
-
-			return output;
+			return answer;
 		}
 	}
 };
 
 int main() {
-	Queue *queue = new Queue;
-
-	int n, k;
+	Queue* queue = new Queue();
+	
+	int n;
+	long int k;
 	cin >> n;
 	for (int i = 0; i < n; i++) {
 		cin >> k;
-		if (k > 0) {
-			queue->push(k);
-		}
-		else {
+		k = rand() % 100;
+		if (k == 0) {
 			cout << queue->pop() << "\n";
 		}
+		else {
+			queue->push(k);
+		}
 	}
+
 	return 0;
 }
