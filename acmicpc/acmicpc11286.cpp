@@ -36,7 +36,7 @@ public:
         int idx = length - 1;
         while (idx > 0){
             int parent = getParent(idx);
-            if (abs(H[idx]) <= abs(H[parent])){
+            if (abs(H[idx]) < abs(H[parent])){
                 swap(&H[idx], &H[parent]);
             } else if (abs(H[idx]) == abs(H[parent]) && H[idx] < H[parent]) {
                 swap(&H[idx], &H[parent]);
@@ -69,12 +69,14 @@ public:
             int child;
             if (abs(H[leftChild]) < abs(H[rightChild])){
                 child = leftChild;
-            } else {
+            } else if (abs(H[leftChild]) == abs(H[rightChild])) {
                 if (H[leftChild] < H[rightChild]){
                     child = leftChild;
                 } else {
                     child = rightChild;
                 }
+            } else {
+                child = rightChild;
             }
 
             if (abs(H[idx]) > abs(H[child])){
@@ -105,6 +107,5 @@ int main(){
             heapq->push(k);
         }
     }
-
     return 0;
 }
