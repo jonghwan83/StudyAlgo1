@@ -1,6 +1,6 @@
 import sys
 
-# sys.stdin = open('acmicpc/sample.txt', 'r')
+sys.stdin = open('acmicpc/sample.txt', 'r')
 
 v, e = map(int, sys.stdin.readline().split())
 
