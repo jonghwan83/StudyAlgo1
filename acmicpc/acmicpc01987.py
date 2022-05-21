@@ -1,39 +1,41 @@
-# need to imporve time complexity
-
 import sys
 
+# sys.stdin = open('acmicpc\sample.txt', 'r')
+
 row, col = map(int, sys.stdin.readline().split())
-board = []
-for _ in range(row):
-    board.append(sys.stdin.readline().strip())
+board = [[0 for _ in range(col)] for _ in range(row)]
+for i in range(row):
+    temp = sys.stdin.readline().strip()
+    temp2 = []
+    for idx, val in enumerate(temp):
+        board[i][idx] = ord(val) - 65
 
 visited = [[0 for _ in range(col)] for _ in range(row)]
-visited_letter = [[[] for _ in range(col)] for _ in range(row)]
+visited_letter = [0] * 26
 
 drows = [-1, 1, 0, 0]
 dcols = [0, 0, -1, 1]
 
-trip = []
-def dfs(board):
-    stack = []
-    stack.append([0, 0])
-    visited[0][0] = 1
-    visited_letter[0][0].append(board[0][0])
+n_letters = 0
 
-    drows = [-1, 1, 0, 0]
-    dcols = [0, 0, -1, 1]
-    while stack:
-        crow, ccol = stack.pop()
-        for d in range(4):
-            drow = crow + drows[d]
-            dcol = ccol + dcols[d]
-            if 0 <= drow < row and 0 <= dcol < col:
-                if board[drow][dcol] not in visited_letter[crow][ccol]:
-                    visited_letter[drow][dcol] = visited_letter[crow][ccol] + [board[drow][dcol]]
-                    visited[drow][dcol] = visited[crow][ccol] + 1
-                    stack.append([drow, dcol])
-    
-    return visited
+def dfs(r, c, count):
+    global n_letters
 
+    n_letters = max(n_letters, count)
 
-print(dfs(board))
+    for i in range(4):
+        dr = r + drows[i]
+        dc = c + dcols[i]
+
+        if (0 <= dr < row) and (0 <= dc < col) and not visited[dr][dc] and not visited_letter[board[dr][dc]]:
+            visited[dr][dc] = 1
+            visited_letter[board[dr][dc]] = 1
+            dfs(dr, dc, count + 1)
+            visited[dr][dc] = 0
+            visited_letter[board[dr][dc]] = 0
+
+visited[0][0] = 0
+visited_letter[board[0][0]] = 1
+dfs(0, 0, 1)
+
+print(n_letters)
