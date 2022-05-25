@@ -1,8 +1,21 @@
-import time
+from ast import operator
+import string
+import sys
 
-start = time.time()
+sys.stdin = open('acmicpc/sample.txt', 'r')
 
-print('hello')
+strings = sys.stdin.readline()
 
+operands = []
+operators = []
+temp = ''
+for s in strings:
+    if (s == '+') or (s == '-'):
+        operators.append(s)
+        operands.append(int(temp))
+        temp = ''
+    else:
+        temp += s
+operands.append(int(temp))
 
-end = time.time()
+visited = [0] * len(operator)
