@@ -1,21 +1,19 @@
-from ast import operator
-import string
 import sys
 
-sys.stdin = open('acmicpc/sample.txt', 'r')
+# sys.stdin = open('acmicpc\sample.txt', 'r')
 
-strings = sys.stdin.readline()
+k = sys.stdin.readline()
+n = k.split('-')
 
-operands = []
-operators = []
-temp = ''
-for s in strings:
-    if (s == '+') or (s == '-'):
-        operators.append(s)
-        operands.append(int(temp))
-        temp = ''
-    else:
-        temp += s
-operands.append(int(temp))
+answer = 0
+x = sum(map(int, n[0].split('+')))
+if n[0] == '-':
+    answer -= x
+else:
+    answer += x
 
-visited = [0] * len(operator)
+for y in n[1:]:
+    y = sum(map(int, y.split('+')))
+    answer -= y
+
+print(answer)
