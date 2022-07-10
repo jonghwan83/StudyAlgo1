@@ -75,6 +75,10 @@ int main() {
     for (int tc = 1; tc <= T; tc++) {
         int score = run() ? MARK : 0;
         printf("#%d %d\n", tc, score);
+
+        if (tc == 1) { 
+            break;
+        }
     }
 
     return 0;
