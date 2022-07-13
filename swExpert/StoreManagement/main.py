@@ -46,8 +46,11 @@ def run():
 sys.stdin = open('swExpert/StoreManagement/sample_input.txt', 'r')
 T, mark = map(int, sys.stdin.readline().split())
 
-score = run()
-print('#{} {}'.format(1, score*100))
+for tc in range(1, T+1):
+    score = run()
+    print('#{} {}'.format(tc, score*100))
+    if tc == 1:
+        break
 
 end = time.time()
 print('elapsed: ', end - start)
