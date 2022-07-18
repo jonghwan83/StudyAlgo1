@@ -1,9 +1,8 @@
-from os import remove
+import time
 import sys
 from solution import init, addBar, removeBar
 
-sys.stdin = open('sample_input.txt', 'r')
-T, MARK = map(int, sys.stdin.readline().split())
+
 
 def run():
     query_num = int(sys.stdin.readline())
@@ -19,7 +18,7 @@ def run():
             ok = True
 
         elif query == 200:
-            mID, mRow, mCol, mLength, mDir, ans = input_list[1:]
+            mID, mLength, mRow, mCol, mDir, ans = input_list[1:]
             ret = addBar(mID, mLength, mRow, mCol, mDir)
             if ans != ret:
                 ok = False
@@ -30,9 +29,22 @@ def run():
             if ans != ret:
                 ok = False
 
+        if q == 2:
+            break
+
     return ok
 
 if __name__ == "__main__":
+    start = time.time()
+
+    sys.stdin = open('sample_input.txt', 'r')
+    T, MARK = map(int, sys.stdin.readline().split())
+    
     for tc in range(1, T+1):
         score = run()
         print("#{} {}".format(tc, score*100))
+        if tc == 1:
+            break
+
+    end = time.time()
+    print('elapsed:', end - start)
