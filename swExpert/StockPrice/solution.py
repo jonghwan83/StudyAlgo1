@@ -1,3 +1,5 @@
+from heapq import heappush, heappop
+
 stockPrices = []
 stockIdx = {}
 
@@ -5,13 +7,17 @@ def init(N, mStocks, mPrices):
     global stockPrices, stockIdx
     stockPrices.clear()
 
+    temp = []
     for i in range(N):
-        stockPrices.append([(mStocks[i], i), int(mPrices[i])])
+        heappush(temp, [(mStocks[i], i), int(mPrices[i])])
 
-    stockPrices.sort()
-    for idx, price in enumerate(stockPrices):
-        stockIdx[price[0][0]] = idx
-
+    i = 0
+    while temp:
+        temp_list = heappop(temp)
+        stockPrices.append(temp_list)
+        stockIdx[temp_list[0][0]] = i
+        i += 1
+        
     return
 
 def changePrices(mFromStock, mToStock, mPriceDiff):
@@ -54,4 +60,3 @@ def getMostIncreasedStock(mFromStock, mToStock):
                 cStock = stockPrices[i][0][0]
 
     return stockPrices[stockIdx[cStock]][0][1]
-    
