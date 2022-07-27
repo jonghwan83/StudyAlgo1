@@ -13,7 +13,6 @@ def init(N):
     global civil
 
     civil = Civil(N)
-    print('initialized')
     return
 
 def newCivilization(r, c, mID):
@@ -100,7 +99,8 @@ def mergeCivilization(mID1, mID2):
     
     for r, c in civil.territory[mID2]:
         civil.grid[r][c] = mID1
-        civil.territory[mID1].append([r, c])
+    
+    civil.territory[mID1] += civil.territory[mID2]
     civil.territory[mID2].clear()
 
     return len(civil.territory[mID1])
