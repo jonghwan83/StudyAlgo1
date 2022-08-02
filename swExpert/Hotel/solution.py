@@ -52,34 +52,36 @@ def findRoom(mFilter:List[int]) -> int:
 
     temp_val = []
 
-    print('input:', mFilter)
     while hotel.price[priceKey]:
-        print(priceKey, hotel.price[priceKey])
         if isCompleted:
-            hotel.reserved[reservedKey].add((temp_val[0], temp_val[1]))
             break
+        isCompleted = False
         price, roomID, hotelID = heappop(hotel.price[priceKey])
         reservedKey = (hotelID, roomID)
         temp.append([price, roomID, hotelID])
         
-    
         if hotel.reserved.get(reservedKey):
-            print(reservedKey, hotel.reserved[reservedKey])  
+            count = 0
             for reservedIn, reservedOut in hotel.reserved[reservedKey]:
-                if (checkOut < reservedIn) or (checkIn > reservedOut):
-                    temp_val = [checkIn, checkOut]
-                    print(temp_val, reservedIn, reservedOut)
-                    isCompleted = True
-                    ans = roomID
-                else:
+                if reservedIn <= checkIn < reservedOut:
                     break
+                if reservedIn < checkOut <= reservedOut:
+                    break
+                if checkIn < reservedIn and checkOut > reservedOut:
+                    break
+                else:
+                    count += 1
+            if count == len(hotel.reserved[reservedKey]):
+                hotel.reserved[reservedKey].add((checkIn, checkOut))
+                ans = roomID
+                break
         else:
             hotel.reserved[reservedKey] = set()
-            temp_val = [checkIn, checkOut]
-            isCompleted = True
+            hotel.reserved[reservedKey].add((checkIn, checkOut))
             ans = roomID
-        
+            isCompleted = True
 
+        
     while temp:
         heappush(hotel.price[priceKey], temp.pop())
 

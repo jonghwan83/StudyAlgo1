@@ -48,7 +48,7 @@ def run():
             correctAns = int(next(inputs))
             if userAns != correctAns:
                 isCorrect = False
-            print(q, userAns, correctAns, isCorrect)
+            # print(q, userAns, correctAns, isCorrect)
 
         elif cmd == RISECOSTS:
             hotelID = int(next(inputs))
@@ -57,7 +57,7 @@ def run():
 
             if userAns != correctAns:
                 isCorrect = False
-            print(q, hotelID, userAns, correctAns, isCorrect)
+            # print(q, hotelID, userAns, correctAns, isCorrect)
         elif cmd == END:
             break
 
@@ -73,8 +73,8 @@ if __name__ == '__main__':
     for testcase in range(1, TC + 1):
         score = MARK if run() else 0
         print("#%d %d" % (testcase, score), flush = True)
-        if testcase == 2:
-            break
+        # if testcase == 2:
+        #     break
 
     end = time.time()
     print('elpased:', end - start)
