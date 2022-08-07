@@ -1,6 +1,7 @@
 #include <vector>
 #include <algorithm>
 #include <map>
+#include <iostream>
 
 using namespace std;
 
@@ -83,26 +84,100 @@ int move(int mNum)
     for (int c = 0; c < nCars; c++) {
         tempMin.clear();
         tempMax.clear();
+
         for (int i = 0; i < mNum; i++)
         {
-            if (c < nCars - 1)
+           if (c < nCars - 1)
             {
                 while (true)
                 {
-                    int point = minHeap[0][0];
-                    int pID = minHeap[0][1];
-                    int ver = minHeap[0][2];
+                    int point = -minHeap[c][0][0];
+                    int pID = -minHeap[c][0][1];
+                    int ver = minHeap[c][0][2];
                     if ((ver == passengers[pID][3]) && (passengers[pID][4]) && (passengers[pID][2] == c))
                     {
                         ans += point;
-                        vector<int> arrMin = {-passengers[pID][0], -pID, passengers[pID][3]}
-                        tempMin.push_back(arrMin);
-                        passengers[pID][4] = 0;
+                        // vector<int> arrMin = { -passengers[pID][0], -pID, passengers[pID][3] };
+                        // tempMin.push_back(arrMin);
+                        // passengers[pID][4] = 0;
                         break;
+                    }
+                    else
+                    {
+                        minHeap[c].pop_back();
                     }
                 }
             }
+
+   /*         if (c > 0)
+            {
+                while (true)
+                {
+                    int point = maxHeap[c][0][0];
+                    int pID = minHeap[c][0][1];
+                    int ver = minHeap[c][0][2];
+                    if ((ver == passengers[pID][3]) && (passengers[pID][4]) && (passengers[pID][2] == c))
+                    {
+                        ans += point;
+                        vector<int> arrMax = { passengers[pID][0], pID, passengers[pID][3] };
+                        tempMax.push_back(arrMax);
+                        passengers[pID][4] = 0;
+                        break;
+                    }
+                    else
+                    {
+                        maxHeap[c].pop_back();
+                    }
+                }
+            }*/
         }
     }
-    return -3;
+
+    /*for (int c = 0; c < nCars; c++)
+    {
+        if (c < nCars - 1)
+        {
+            while (tempMin.size() > 0)
+            {
+                int point = -tempMin[0][0];
+                int pID = -tempMin[0][1];
+                int ver = tempMin[0][2];
+                tempMin.pop_back();
+
+                passengers[pID][2] = c + 1;
+                vector<int> arrMin = { -point, -pID, ver };
+                minHeap[c].push_back(arrMin);
+                push_heap(minHeap[c].begin(), minHeap[c].end());
+
+                vector<int> arrMax = { point, pID, ver };
+                maxHeap[c].push_back(arrMax);
+                push_heap(maxHeap[c].begin(), maxHeap[c].end());
+                
+                passengers[pID][4] = 1;
+            }
+
+            if (c > 0)
+            {
+                while (tempMax.size() > 0)
+                {
+                    int point = tempMax[0][0];
+                    int pID = tempMax[0][1];
+                    int ver = tempMax[0][2];
+                    tempMax.pop_back();
+
+                    passengers[pID][2] = c + 1;
+                    vector<int> arrMin = { -point, -pID, ver };
+                    minHeap[c].push_back(arrMin);
+                    push_heap(minHeap[c].begin(), minHeap[c].end());
+
+                    vector<int> arrMax = { point, pID, ver };
+                    maxHeap[c].push_back(arrMax);
+                    push_heap(maxHeap[c].begin(), maxHeap[c].end());
+
+                    passengers[pID][4] = 1;
+                }
+            }
+        }
+    }*/
+    return ans;
 }
