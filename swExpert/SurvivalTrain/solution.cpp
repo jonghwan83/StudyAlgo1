@@ -78,106 +78,122 @@ int updateByJob(int mJobID, int mPoint)
 int move(int mNum)
 {
     int ans = 0;
-    vector<vector<int> > tempMin;
-    vector<vector<int> > tempMax;
 
-    for (int c = 0; c < nCars; c++) {
-        tempMin.clear();
-        tempMax.clear();
+    map<int, vector<vector<int> > > tempMin;
+    map<int, vector<vector<int> > > tempMax;
 
+    for (int c = 0; c < nCars; c++)
+    {
         for (int i = 0; i < mNum; i++)
         {
-           if (c < nCars - 1)
+            if (c < nCars - 1)
             {
-                while (true)
+                while (minHeap[c].size() > 0)
                 {
                     int point = -minHeap[c][0][0];
                     int pID = -minHeap[c][0][1];
                     int ver = minHeap[c][0][2];
+                    
                     if ((ver == passengers[pID][3]) && (passengers[pID][4]) && (passengers[pID][2] == c))
                     {
                         ans += point;
-                        // vector<int> arrMin = { -passengers[pID][0], -pID, passengers[pID][3] };
-                        // tempMin.push_back(arrMin);
-                        // passengers[pID][4] = 0;
+                        vector<int> tempArr = { -point, -pID, ver };
+                        tempMin[c].push_back(tempArr);
+                        passengers[pID][4] = 0;
+
+                        pop_heap(minHeap[c].begin(), minHeap[c].end());
+                        minHeap[c].pop_back();
                         break;
                     }
                     else
                     {
+                        pop_heap(minHeap[c].begin(), minHeap[c].end());
                         minHeap[c].pop_back();
                     }
                 }
             }
-
-   /*         if (c > 0)
+            
+            if (c > 0)
             {
-                while (true)
+                while (maxHeap[c].size() > 0)
                 {
                     int point = maxHeap[c][0][0];
-                    int pID = minHeap[c][0][1];
-                    int ver = minHeap[c][0][2];
+                    int pID = maxHeap[c][0][1];
+                    int ver = maxHeap[c][0][2];
+
                     if ((ver == passengers[pID][3]) && (passengers[pID][4]) && (passengers[pID][2] == c))
                     {
                         ans += point;
-                        vector<int> arrMax = { passengers[pID][0], pID, passengers[pID][3] };
-                        tempMax.push_back(arrMax);
+                        vector<int> tempArr = { point, pID, ver };
+                        tempMax[c].push_back(tempArr);
                         passengers[pID][4] = 0;
+
+                        pop_heap(maxHeap[c].begin(), maxHeap[c].end());
+                        maxHeap[c].pop_back();
+                        cout << "break" << endl;
                         break;
                     }
                     else
                     {
+                        pop_heap(maxHeap[c].begin(), maxHeap[c].end());
                         maxHeap[c].pop_back();
                     }
                 }
-            }*/
+            }
         }
     }
 
-    /*for (int c = 0; c < nCars; c++)
+    for (int c = 0; c < nCars; c++) 
     {
         if (c < nCars - 1)
         {
-            while (tempMin.size() > 0)
+            while (tempMin[c].size() > 0)
             {
-                int point = -tempMin[0][0];
-                int pID = -tempMin[0][1];
-                int ver = tempMin[0][2];
-                tempMin.pop_back();
-
+                int point = -tempMin[c][tempMin[c].size() - 1][0];
+                int pID = -tempMin[c][tempMin[c].size() - 1][1];
+                int ver = tempMin[c][tempMin[c].size() - 1][2];
+                
                 passengers[pID][2] = c + 1;
-                vector<int> arrMin = { -point, -pID, ver };
-                minHeap[c].push_back(arrMin);
+
+                vector<int> tempArr = { -point, -pID, ver };
+                minHeap[c+1].push_back(tempArr);
                 push_heap(minHeap[c].begin(), minHeap[c].end());
 
-                vector<int> arrMax = { point, pID, ver };
-                maxHeap[c].push_back(arrMax);
+                tempArr = { point, pID, ver };
+                maxHeap[c+1].push_back(tempArr);
                 push_heap(maxHeap[c].begin(), maxHeap[c].end());
-                
+
                 passengers[pID][4] = 1;
-            }
 
-            if (c > 0)
-            {
-                while (tempMax.size() > 0)
-                {
-                    int point = tempMax[0][0];
-                    int pID = tempMax[0][1];
-                    int ver = tempMax[0][2];
-                    tempMax.pop_back();
-
-                    passengers[pID][2] = c + 1;
-                    vector<int> arrMin = { -point, -pID, ver };
-                    minHeap[c].push_back(arrMin);
-                    push_heap(minHeap[c].begin(), minHeap[c].end());
-
-                    vector<int> arrMax = { point, pID, ver };
-                    maxHeap[c].push_back(arrMax);
-                    push_heap(maxHeap[c].begin(), maxHeap[c].end());
-
-                    passengers[pID][4] = 1;
-                }
+                tempMin[c].pop_back();
             }
         }
-    }*/
+
+        if (c > 0)
+        {
+            while (tempMax[c].size() > 0)
+            {
+                int point = tempMax[c][tempMax[c].size() - 1][0];
+                int pID = tempMax[c][tempMax[c].size() - 1][1];
+                int ver = tempMax[c][tempMax[c].size() - 1][2];
+
+                passengers[pID][2] = c - 1;
+
+                vector<int> tempArr = { -point, -pID, ver };
+                minHeap[c-1].push_back(tempArr);
+                push_heap(minHeap[c].begin(), minHeap[c].end());
+
+                tempArr = { point, pID, ver };
+                maxHeap[c-1].push_back(tempArr);
+                push_heap(maxHeap[c].begin(), minHeap[c].end());
+
+                passengers[pID][4] = 1;
+
+                tempMax[c].pop_back();
+            }
+        }
+    }
+
+    cout << ans << endl;
     return ans;
 }
