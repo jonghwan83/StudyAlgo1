@@ -53,6 +53,7 @@ static int run(int _score)
 			scanf("%d", &correct_ans);
 			if (user_ans != correct_ans)
 				score = 0;
+
 			break;
 		case RISECOSTS:
 			scanf("%d", &hotelID);
@@ -60,6 +61,7 @@ static int run(int _score)
 			scanf("%d", &correct_ans);
 			if (user_ans != correct_ans)
 				score = 0;
+
 			break;
 		case END:
 			return score;
@@ -85,9 +87,6 @@ int main()
 	for (int t = 1; t <= tc; t++)
 	{
 		printf("#%d %d\n", t, run(score));
-		if (t == 1) {
-			break;
-		}
 	}
 
 	chrono::steady_clock::time_point end = chrono::high_resolution_clock::now();
