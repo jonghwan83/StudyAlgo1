@@ -1,14 +1,15 @@
-#include <map>
 #include <vector>
 #include <algorithm>
-#include <iostream>
 #include <set>
+#include <unordered_set>
+#include <unordered_map>
+#include <string>
 
 using namespace std;
 
-map<vector<int>, vector<vector<int> > > hotelPrice;
-map<int, set<vector<int> > > priceIdx;
-map<vector<int>, set<vector<int> > > reserved;
+unordered_map<string, vector<vector<int> > > hotelPrice;
+unordered_map<int, unordered_set<string> > priceIdx;
+unordered_map<string, set<vector<int> > > reserved;
 
 void init(int N, int mRoomCnt[])
 {
@@ -19,16 +20,21 @@ void init(int N, int mRoomCnt[])
 
 void addRoom(int mHotelID, int mRoomID, int mRoomInfo[])
 {
-	vector<int> keyVec(mRoomInfo, mRoomInfo+4);
+	string keyStr;
+	for (int i = 0; i < 4; i++)
+	{
+		keyStr += to_string(mRoomInfo[i]);
+	}
+
 	int price = mRoomInfo[4];
 
 	int temp[] = { -price, -mRoomID, mHotelID };
 	vector<int> valueVec(temp, temp+3);
 
-	hotelPrice[keyVec].push_back(valueVec);
-	push_heap(hotelPrice[keyVec].begin(), hotelPrice[keyVec].end());
+	hotelPrice[keyStr].push_back(valueVec);
+	push_heap(hotelPrice[keyStr].begin(), hotelPrice[keyStr].end());
 
-	priceIdx[mHotelID].insert(keyVec);
+	priceIdx[mHotelID].insert(keyStr);
 
 	return;
 }
@@ -40,7 +46,11 @@ int findRoom(int mFilter[])
 
 	int checkIn = mFilter[0];
 	int checkOut = mFilter[1];
-	vector<int> priceKey(mFilter + 2, mFilter + 6);
+	string priceKey;
+	for (int i = 2; i < 6; i++)
+	{
+		priceKey += to_string(mFilter[i]);
+	}
 	
 	bool isComplete = false;
 
@@ -62,8 +72,9 @@ int findRoom(int mFilter[])
 		pop_heap(hotelPrice[priceKey].begin(), hotelPrice[priceKey].end());
 		hotelPrice[priceKey].pop_back();
 
-		int tempKey[] = { hotelID, roomID };
-		vector<int> reservedKey(tempKey, tempKey + 2);
+		string reservedKey;
+		reservedKey += to_string(hotelID);
+		reservedKey += to_string(roomID);
 
 		count = 0;
 		set<vector<int> >::iterator itr;
@@ -101,27 +112,27 @@ int findRoom(int mFilter[])
 
 int riseCosts(int mHotelID)
 {
-	vector<int> keyVec;
+	string keyStr;
 	int ans = 0;
 	bool isChanged = false;
 
-	set<vector<int> >::iterator itr;
+	unordered_set<string>::iterator itr;
 	for (itr = priceIdx[mHotelID].begin(); itr != priceIdx[mHotelID].end(); itr++)
 	{
-		keyVec = *itr;
-		for (int j=0; j < hotelPrice[keyVec].size(); j++)
+		keyStr = *itr;
+		for (int j=0; j < hotelPrice[keyStr].size(); j++)
 		{
-			if (hotelPrice[keyVec][j][2] == mHotelID)
+			if (hotelPrice[keyStr][j][2] == mHotelID)
 			{
-				hotelPrice[keyVec][j][0] *= 1.1;
-				ans += hotelPrice[keyVec][j][0];
+				hotelPrice[keyStr][j][0] *= 1.1;
+				ans += hotelPrice[keyStr][j][0];
 				isChanged = true;
 			}
 		}
 
 		if (isChanged)
 		{
-			make_heap(hotelPrice[keyVec].begin(), hotelPrice[keyVec].end());
+			make_heap(hotelPrice[keyStr].begin(), hotelPrice[keyStr].end());
 			isChanged = false;
 		}
 	}
