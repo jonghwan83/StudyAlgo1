@@ -1,4 +1,6 @@
 #include <string>
+#include <vector>
+#include <queue>
 
 #define MAX_PASSENGERS 100000
 #define MAX_JOB 1000
@@ -31,9 +33,14 @@ void appendNode(int key, Node* node)
 }
 
 int passengers[MAX_PASSENGERS][3];
+int nCar;
+int total;
+
 
 void init(int N, int M, int J, int mPoint[], int mJobID[])
 {
+    total = N;
+    nCar = N / M;
     for (int i=0; i < N; i++)
     {
         int car = i / M;
@@ -45,61 +52,6 @@ void init(int N, int M, int J, int mPoint[], int mJobID[])
         passengers[i][2] = mJobID[i];
     }
 }
-
-
-void swap(int* a, int* b)
-    {
-        int* t = a;
-        *a = *b;
-        *b = t;
-    }
-
-class Priority_queue
-{
-    public:
-        int node[MAX_PASSENGERS];
-        int n;
-
-    Priority_queue() { n = 0; }
-
-    int getParent(int idx) { return (idx - 1) / 2; }
-    int getLeft(int idx) { return 2 * idx + 1; }
-    int getRight(int idx) { return 2 * idx + 2; }
-    
-    
-
-    void push(int data)
-    {
-        node[n] = data;
-        int k = n;
-        n++;
-
-        while (k > 0)
-        {
-            int parent = getParent(k);
-            if (node[parent] > node[k])
-            {
-                swap(node[parent], node[k]);
-                k = parent;
-            }
-            else { break; }   
-        }
-    }
-    
-    int pop()
-    {
-        int result = node[0];
-        swap(node[0], node[n-1]);
-        int k = 0;
-
-        while (k < n-1)
-        {
-            int leftChild = getLeft(k);
-            int rightChild = getRight(k);
-            
-        }
-    }
-};
 
 void destroy()
 {
@@ -129,5 +81,13 @@ int updateByJob(int mJobID, int mPoint)
 
 int move(int mNum)
 {
+    std::priority_queue<std::pair<int, int> > maxHeap[nCar];
+    std::priority_queue<std::pair<int, int> > minHeap[nCar];
+    for (int i=0; i < total; i++)
+    {
+        maxHeap[passengers[i][1]].push(std::make_pair(passengers[i][0], i));
+        minHeap[passengers[i][1]].push(std::make_pair(passengers[i][0], i));
+    }
+
     return -3;
 }
