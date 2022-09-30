@@ -1,79 +1,151 @@
+# evaluate worst case
+# worst case: R - 700, C - 10000, M: 0 ~ 30000
+# grid size = 700 * 10000
+# max query 31 in 1 tc
+# worst total loop in 1 tc: 700 * 10000 * 31 = 217,000,000 (about 2 seconds)
+
 from collections import deque
 
-drows = [-1, 1, 0, 0]
-dcols = [0, 0, -1, 1]
+def binarySearch(element, arr):     # find right-side index
+    left = 0
+    right = len(arr) - 1
 
-def rev_dir(i):
-    if i == 0:
-        return 1
-    elif i == 1:
-        return 0
-    elif i == 2:
-        return 3
-    else:
-        return 2
+    while left < right:
+        mid = (left + right) // 2
+        if arr[mid] < element:
+            left = mid + 1
+        else:
+            right = mid
+        
+    return right
 
 def bfs(sPoint, ePoint):
-    global planet, visited, nRow, nCol
+    global structureR, structureC, nRow, nCol, visited
 
     visited = [[0] * nCol for _ in range(nRow)]
 
     queue = deque()
-    queue.append(sPoint + [5])
-
-    if (sPoint[0] == ePoint[0]) and (sPoint[1] == ePoint[1]):
-        return 
+    queue.append(sPoint)
+    visited[sPoint[0]][sPoint[1]] = 1
 
     while queue:
-        r, c, track = queue.popleft()
+        r, c = queue.popleft()
 
-        visited[r][c] += 1
+        # binary search by direction
+        # row direction
+        if structureR[r]:
+            col_loc = binarySearch(c, structureR[r])    # target: column
+            col_idx = structureR[r][col_loc]
 
-        for i in range(4):
-            dr = r + drows[i]
-            dc = c + dcols[i]
-            
-            if i != track:
-                if (0 <= dr < nRow) and (0 <= dc < nCol):
-                    if planet[dr][dc] == 0:
-                        while (0 <= dr < nRow) and (0 <= dc < nCol):
-                            if planet[dr][dc] == 1:
-                                if not visited[dr-drows[i]][dc-dcols[i]]:
-                                    visited[dr-drows[i]][dc-dcols[i]] = visited[r][c]
-                                    queue.append([dr-drows[i], dc-dcols[i]] + [rev_dir(i)])
-                                break
+            # col_idx on left
+            if col_idx < c:
+                if ((r == ePoint[0]) and (col_idx <= ePoint[1] <= c)) or ((r == ePoint[0]) and (c <= ePoint[1])):
+                    visited[ePoint[0]][ePoint[1]] = visited[r][c]
+                    return
 
-                            if (dr == ePoint[0]) and (dc == ePoint[1]):
-                                visited[dr][dc] = visited[r][c]
-                                return
-                            dr += drows[i]
-                            dc += dcols[i]
+                if not visited[r][col_idx + 1]:
+                    visited[r][col_idx + 1] = visited[r][c] + 1
+                    queue.append([r, col_idx + 1])
+            else:   # col_idx on right
+                if (r == ePoint[0]) and (c <= ePoint[1] <= col_idx):
+                    visited[ePoint[0]][ePoint[1]] = visited[r][c]
+                    return
 
-    return 
+                if not visited[r][col_idx - 1]:
+                    visited[r][col_idx - 1] = visited[r][c] + 1
+                    queue.append([r, col_idx - 1])
+
+                if len(structureR[r]) == 1 or col_loc == 0:
+                    if (r == ePoint[0]) and (0 <= ePoint[1] < c):
+                        visited[ePoint[0]][ePoint[1]] = visited[r][c]
+                        return
+
+                # left direction
+                if col_loc > 0:
+                    col_idx2 = structureR[r][col_loc - 1]
+                    if (r == ePoint[0]) and (col_idx2 <= ePoint[1] <= c):
+                        visited[ePoint[0]][ePoint[1]] = visited[r][c]
+                        return
+
+                    if not visited[r][col_idx2 + 1]:
+                        visited[r][col_idx2 + 1] = visited[r][c] + 1
+                        queue.append([r, col_idx2 + 1])
+
+        else: # no structure in col
+            if ePoint[0] == r:
+                visited[ePoint[0]][ePoint[1]] = visited[r][c]
+                return
+
+        # col direction
+        if structureC[c]:
+            row_loc = binarySearch(r, structureC[c])
+            row_idx = structureC[c][row_loc]
+
+            # row_idx on upper
+            if row_idx < r:
+                if ((row_idx <= ePoint[0] <= r) and (c == ePoint[1])) or ((r <= ePoint[0]) and (c == ePoint[1])):
+                    visited[ePoint[0]][ePoint[1]] = visited[r][c]
+                    return
+
+                if not visited[row_idx + 1][c]:
+                    visited[row_idx + 1][c] = visited[r][c] + 1
+                    queue.append([row_idx + 1, c])
+            else:   # row_idx on down
+                if (r <= ePoint[0] <= row_idx) and (c == ePoint[1]):
+                    visited[ePoint[0]][ePoint[1]] = visited[r][c]
+                    return
+                
+                if len(structureC[c]) == 1 or row_loc == 0:
+                    if (0 <= ePoint[0] <= r) and (c == ePoint[1]):
+                        visited[ePoint[0]][ePoint[1]] = visited[r][c]
+                        return
+
+                if not visited[row_idx - 1][c]:
+                    visited[row_idx - 1][c] = visited[r][c] + 1
+                    queue.append([row_idx - 1, c])
+
+                # upper direction
+                if row_loc > 0:
+                    row_idx2 = structureC[c][row_loc - 1]
+                    if (row_idx2 <= ePoint[0] <= r) and (c == ePoint[1]):
+                        visited[ePoint[0]][ePoint[1]] = visited[r][c]
+                        return
+
+                    if not visited[row_idx2 + 1][c]:
+                        visited[row_idx2 + 1][c] = visited[r][c] + 1
+                        queue.append([row_idx2 + 1, c])
+        
+        else: # no structure in row
+            if ePoint[1] == c:
+                visited[ePoint[0]][ePoint[1]] = visited[r][c]
+                return
+
+    return
 
 
 def init(R, C, M, mStructureR, mStructureC):
-    global planet, nRow, nCol
-    
+    global nRow, nCol, structureR, structureC
+
     nRow = R
     nCol = C
-    
-    planet = [[0] * C for _ in range(R)]
-    for i in range(M):
-        planet[mStructureR[i]][mStructureC[i]] = 1  # set structure
+ 
+    structureR = [[] for _ in range(R)]
+    structureC = [[] for _ in range(C)]
+
+    for r, c in zip(mStructureR, mStructureC):
+        structureR[r].append(c)
+        structureC[c].append(r)
+
+        structureR[r].sort()
+        structureC[c].sort()
 
     return
 
 def minDamage(mStartR, mStratC, mEndR, mEndC):
-    global planet, visited, nRow, nCol, answer
-    answer = -1
+    global visited
 
-    if (mStartR == mEndR) and (mStratC == mEndC):
+    if [mStartR, mStratC] == [mEndR, mEndC]:
         return 0
-
     bfs([mStartR, mStratC], [mEndR, mEndC])
-    
-    if visited[mEndR][mEndC] >= 0:
-        answer = visited[mEndR][mEndC] - 1
 
-    return answer
+    return visited[mEndR][mEndC] - 1
