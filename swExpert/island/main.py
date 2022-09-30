@@ -50,8 +50,6 @@ if __name__ == "__main__":
     for tc in range(1, T+1):
         score = run()
         print("#{} {}".format(tc, score * 100))
-        # if tc == 1:
-        #     break
 
     end = time.time()
     print('elapsed:', end - start)
