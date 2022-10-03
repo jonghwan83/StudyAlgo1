@@ -3,7 +3,7 @@
 #endif
 
 #include <stdio.h>
-#include <chrono>
+#include <time.h>
 #include <iostream>
 
 using namespace std;
@@ -64,8 +64,10 @@ int userAns, ans;
 }
 
 int main()
-{   
-    chrono::steady_clock::time_point start = chrono::high_resolution_clock::now();
+{
+   clock_t start, end;
+
+   start = clock();
    setbuf(stdout, NULL);
    freopen("sample_input.txt", "r", stdin);
 
@@ -76,12 +78,9 @@ int main()
  {
   int score = run() ? MARK : 0;
   printf("#%d %d\n", tc, score);
-  if (tc == 1) { break; }
  }
-
-    chrono::steady_clock::time_point end = chrono::high_resolution_clock::now();
-
-    cout << "elapsed: " << chrono::duration_cast<chrono::milliseconds>(end-start).count() << "\n";
+   end = clock() - start;
+   printf("elapsed: %f\n", (float)(end/CLOCKS_PER_SEC));
 
  return 0;
 }
