@@ -11,6 +11,7 @@ using namespace std;
 
 unordered_map<string, vector< vector<string> > > project;       // key: branch, value: file, data
 unordered_map<string, vector< vector<int> > > projectTime;      // key: branch, vlaue: created time, edited time, vector index
+unordered_map<string, unordered_map<string, bool> > projectExist;       // key: branch, value; [file, boolean]
 unordered_map<string, unordered_map<string, int> > projectIdx;
 map<string, vector<string> > projectTree;         // key: branch, value: child node
 unordered_map<string, string> hashTable;        // key: child node, value: parent node
@@ -21,6 +22,8 @@ bool compare(const vector<int> a, vector<int> b) { return a[0] < b[0]?false:true
 void init() {
     project.clear();
     projectTime.clear();
+    projectIdx.clear();
+    projectExist.clear();
 
     // add root node
     vector<string> root = { };
@@ -34,21 +37,24 @@ void create(int mTime, char mBranch[], char mFile[], char mData[]) {
         project[mBranch].push_back(temp); 
     }
 
-    vector<string> file = { mFile, mData, "on" };
+    if (projectTime[mBranch].size() >= 50) {
+        int idxFront = projectTime[mBranch][0][2];
+        pop_heap(projectTime[mBranch].begin(), projectTime[mBranch].end(), compare);
+        projectTime[mBranch].pop_back();
+        
+        string cFile = project[mBranch][idxFront][0];
+        projectExist[mBranch][cFile] = false;
+    }
+
+    vector<string> file = { mFile, mData };
     vector<int> time = { mTime, mTime, (int)project[mBranch].size() };
 
     projectIdx[mBranch][mFile] = (int)project[mBranch].size();
     project[mBranch].push_back(file);
+    projectExist[mBranch][mFile] = true;
 
     projectTime[mBranch].push_back(time);
     push_heap(projectTime[mBranch].begin(), projectTime[mBranch].end(), compare);
-
-    if (projectTime[mBranch].size() > 50) {
-        int idxFront = projectTime[mBranch][0][2];
-        pop_heap(projectTime[mBranch].begin(), projectTime[mBranch].end(), compare);
-        project[mBranch][idxFront][2] = "off";
-    }
-
 }
 
 void createFromChild(int mTime, string mBranch, string mFile, string mData, int eTime) {
@@ -57,27 +63,31 @@ void createFromChild(int mTime, string mBranch, string mFile, string mData, int 
         project[mBranch].push_back(temp); 
     }
 
+    if (projectTime[mBranch].size() >= 50) {
+        int idxFront = projectTime[mBranch][0][2];
+        pop_heap(projectTime[mBranch].begin(), projectTime[mBranch].end(), compare);
+        projectTime[mBranch].pop_back();
+        
+        string cfile = project[mBranch][idxFront][0];
+        projectExist[mBranch][cfile] = false;
+    }
+
     vector<string> file = { mFile, mData };
     vector<int> time = { mTime, eTime, (int)project[mBranch].size() };
 
     projectIdx[mBranch][mFile] = (int)project[mBranch].size();
     project[mBranch].push_back(file);
-
-    if (projectTime[mBranch].size() >= 50) {
-        pop_heap(projectTime[mBranch].begin(), projectTime[mBranch].end(), compare);
-        projectTime[mBranch].pop_back();
-    }
+    projectExist[mBranch][mFile] = true;
 
     projectTime[mBranch].push_back(time);
     push_heap(projectTime[mBranch].begin(), projectTime[mBranch].end(), compare);
-
-    cout << projectTime[mBranch].size() << endl;
 }
 
 void copyFile(string mChild, string mFile, string mData, int eTime, int cTime) {
     string parent = hashTable[mChild];
+
     int idxParent = -1;
-    if (projectIdx[parent][mFile] > 0 && project[parent][projectIdx[parent][mFile]][1] == "on") {
+    if (projectIdx[parent][mFile] > 0 && projectExist[parent][mFile]) {
         idxParent = projectIdx[parent][mFile];
     }
 
@@ -119,6 +129,9 @@ void mergeChild(string mChild) {
     project[mChild].clear();
     projectTree[mChild].clear();
     projectIdx[mChild].clear();
+    projectExist[mChild].clear();
+    projectTime[mChild].clear();
+    hashTable[mChild].clear();
 }
 
 void callTree(string mBranch) {
@@ -149,6 +162,7 @@ void branch(int mTime, char mBranch[], char mChild[]) {
     project[mChild] = project[mBranch];
     projectTime[mChild] = projectTime[mBranch];
     projectIdx[mChild] = projectIdx[mBranch];
+    projectExist[mChild] = projectExist[mBranch];
 
     projectTree[mBranch].push_back(mChild);
     hashTable[mChild] = mBranch;
@@ -167,7 +181,5 @@ int readfile(int mTime, char mBranch[], char mFile[], char retString[]) {
         retString[i] = data[i];
     }
     retString[data.size()] = '\0';
-    cout << idx << " " << retString << endl;
-    cout << projectTime[mBranch][0][2] << endl;
     return lenString;
 }
