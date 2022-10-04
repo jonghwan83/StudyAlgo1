@@ -115,17 +115,17 @@ void mergeChild(string mChild) {
     int idxChild, cTime, eTime;
     string fileChild, dataChild;
     while (projectTime[mChild].size() > 0) {
-        cTime = projectTime[mChild][0][0];
-        eTime = projectTime[mChild][0][1];
-        idxChild = projectTime[mChild][0][2];
+        cTime = projectTime[mChild][projectTime[mChild].size() - 1][0];
+        eTime = projectTime[mChild][projectTime[mChild].size() - 1][1];
+        idxChild = projectTime[mChild][projectTime[mChild].size() - 1][2];
         fileChild = project[mChild][idxChild][0];
         dataChild = project[mChild][idxChild][1];
 
-        pop_heap(projectTime[mChild].begin(), projectTime[mChild].end(), compare);
         projectTime[mChild].pop_back();
 
         copyFile(mChild, fileChild, dataChild, eTime, cTime);
     }
+    
     project[mChild].clear();
     projectTree[mChild].clear();
     projectIdx[mChild].clear();
