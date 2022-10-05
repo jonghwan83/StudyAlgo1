@@ -80,7 +80,7 @@ int main()
   printf("#%d %d\n", tc, score);
  }
    end = clock() - start;
-   printf("elapsed: %f\n", (float)(end/CLOCKS_PER_SEC));
+   printf("elapsed: %f\n", (float)end/CLOCKS_PER_SEC);
 
  return 0;
 }
