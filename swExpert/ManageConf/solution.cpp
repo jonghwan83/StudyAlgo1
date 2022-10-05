@@ -1,185 +1,168 @@
+#include <string>
 #include <vector>
+#include <algorithm>
 #include <unordered_map>
 #include <map>
-#include <algorithm>
-#include <string>
-#include <cstring>
 #include <iostream>
 
 using namespace std;
 
 
-unordered_map<string, vector< vector<string> > > project;       // key: branch, value: file, data
-unordered_map<string, vector< vector<int> > > projectTime;      // key: branch, vlaue: created time, edited time, vector index
-unordered_map<string, unordered_map<string, bool> > projectExist;       // key: branch, value; [file, boolean]
-unordered_map<string, unordered_map<string, int> > projectIdx;
-map<string, vector<string> > projectTree;         // key: branch, value: child node
-unordered_map<string, string> hashTable;        // key: child node, value: parent node
+struct FileDetail {
+public:
+	int cTime;
+	int eTime;
+	string fname;
+	string data;
+    bool isExist;
 
+	FileDetail(int ctime, int etime, string filename, string content) {
+		cTime = ctime;
+		eTime = etime;
+		fname = filename;
+		data = content;
+        isExist = true;
+	}
+};
 
-bool compare(const vector<int> a, vector<int> b) { return a[0] < b[0]?false:true; }
+bool compare(pair<int, int> a, pair<int, int> b) { return a.first < b.first ? false : true; }
+
+unordered_map<string, vector< pair<int, int> > > pQueue;    // key: branch, filename value: cTime, index
+unordered_map<string, vector<FileDetail> > project;		// key: Branch, value: info
+unordered_map<string, unordered_map<string, int > > dict;        // value: index
+map<string, vector<string> > projectTree;
+unordered_map<string, string> hashParent;
 
 void init() {
-    project.clear();
-    projectTime.clear();
-    projectIdx.clear();
-    projectExist.clear();
+    pQueue.clear();
+	project.clear();
+	dict.clear();
+	projectTree.clear();
+	hashParent.clear();
+	
+	vector<string> temp = {};
+	projectTree["root"] = temp;
 
-    // add root node
-    vector<string> root = { };
-    projectTree["root"] = root;
-    hashTable.clear();
+	return;
 }
 
 void create(int mTime, char mBranch[], char mFile[], char mData[]) {
-    if (project[mBranch].size() == 0) { 
-        vector<string> temp = { };
-        project[mBranch].push_back(temp); 
+	FileDetail temp(mTime, mTime, mFile, mData);
+
+    if (pQueue[mBranch].size() >= 50) {
+        int idxFront = pQueue[mBranch][0].second;
+        project[mBranch][idxFront].isExist = false;
+
+        pop_heap(pQueue[mBranch].begin(), pQueue[mBranch].end(), compare);
+        pQueue[mBranch].pop_back();
     }
 
-    if (projectTime[mBranch].size() >= 50) {
-        int idxFront = projectTime[mBranch][0][2];
-        pop_heap(projectTime[mBranch].begin(), projectTime[mBranch].end(), compare);
-        projectTime[mBranch].pop_back();
-        
-        string cFile = project[mBranch][idxFront][0];
-        projectExist[mBranch][cFile] = false;
-    }
+	project[mBranch].push_back(temp);
+    pQueue[mBranch].push_back(make_pair(mTime, (int)project[mBranch].size() - 1));
+    push_heap(pQueue[mBranch].begin(), pQueue[mBranch].end(), compare);
+    dict[mBranch][mFile] = (int)project[mBranch].size() - 1;
 
-    vector<string> file = { mFile, mData };
-    vector<int> time = { mTime, mTime, (int)project[mBranch].size() };
-
-    projectIdx[mBranch][mFile] = (int)project[mBranch].size();
-    project[mBranch].push_back(file);
-    projectExist[mBranch][mFile] = true;
-
-    projectTime[mBranch].push_back(time);
-    push_heap(projectTime[mBranch].begin(), projectTime[mBranch].end(), compare);
+	return;
 }
 
 void createFromChild(int mTime, string mBranch, string mFile, string mData, int eTime) {
-    if (project[mBranch].size() == 0) { 
-        vector<string> temp = { };
-        project[mBranch].push_back(temp); 
+    FileDetail temp(mTime, eTime, mFile, mData);
+
+    if (pQueue[mBranch].size() >= 50) {
+        int idxFront = pQueue[mBranch][0].second;
+        project[mBranch][idxFront].isExist = false;
+
+        pop_heap(pQueue[mBranch].begin(), pQueue[mBranch].end(), compare);
+        pQueue[mBranch].pop_back();
     }
 
-    if (projectTime[mBranch].size() >= 50) {
-        int idxFront = projectTime[mBranch][0][2];
-        pop_heap(projectTime[mBranch].begin(), projectTime[mBranch].end(), compare);
-        projectTime[mBranch].pop_back();
-        
-        string cfile = project[mBranch][idxFront][0];
-        projectExist[mBranch][cfile] = false;
-    }
+	project[mBranch].push_back(temp);
+    pQueue[mBranch].push_back(make_pair(mTime, (int)project[mBranch].size() - 1));
+    push_heap(pQueue[mBranch].begin(), pQueue[mBranch].end(), compare);
+    dict[mBranch][mFile] = (int)project[mBranch].size() - 1;
 
-    vector<string> file = { mFile, mData };
-    vector<int> time = { mTime, eTime, (int)project[mBranch].size() };
-
-    projectIdx[mBranch][mFile] = (int)project[mBranch].size();
-    project[mBranch].push_back(file);
-    projectExist[mBranch][mFile] = true;
-
-    projectTime[mBranch].push_back(time);
-    push_heap(projectTime[mBranch].begin(), projectTime[mBranch].end(), compare);
+	return;
 }
 
-void copyFile(string mChild, string mFile, string mData, int eTime, int cTime) {
-    string parent = hashTable[mChild];
-
-    int idxParent = -1;
-    if (projectIdx[parent][mFile] > 0 && projectExist[parent][mFile]) {
-        idxParent = projectIdx[parent][mFile];
-    }
-
-    int cTimeParent, eTimeParent;
-    if (idxParent == -1) {
-        // create from child
-        createFromChild(cTime, parent, mFile, mData, eTime);
-    }
-    else {
-        for (int i=0; i < projectTime[parent].size(); i++) {
-            if (idxParent == projectTime[parent][i][2]) {
-                cTimeParent = projectTime[parent][i][0];
-                eTimeParent = projectTime[parent][i][1];
-                if (cTime == cTimeParent && eTime > eTimeParent) {
-                    project[parent][idxParent][1] = mData;
-                    projectTime[parent][i][1] = eTime;
-                }
-                break;
+void copyFile(string mChild, string mFile, string mData, int cTime, int eTime) {
+    string parent = hashParent[mChild];
+    int idx = dict[parent][mFile];
+    
+    if ((project[parent][idx].isExist) && (project[parent][idx].fname == mFile)) {
+        if (cTime == project[parent][idx].cTime) {
+            if (eTime > project[parent][idx].eTime) {
+                project[parent][idx].eTime = eTime;
+                project[parent][idx].data = mData;
             }
         }
     }
+    else {
+        createFromChild(cTime, parent, mFile, mData, eTime);
+    }
+	return;
 }
 
-void mergeChild(string mChild) {
-    int idxChild, cTime, eTime;
-    string fileChild, dataChild;
-    while (projectTime[mChild].size() > 0) {
-        cTime = projectTime[mChild][projectTime[mChild].size() - 1][0];
-        eTime = projectTime[mChild][projectTime[mChild].size() - 1][1];
-        idxChild = projectTime[mChild][projectTime[mChild].size() - 1][2];
-        fileChild = project[mChild][idxChild][0];
-        dataChild = project[mChild][idxChild][1];
-
-        projectTime[mChild].pop_back();
-
-        copyFile(mChild, fileChild, dataChild, eTime, cTime);
-    }
+void mergeToParent(string mBranch) {
     
-    project[mChild].clear();
-    projectTree[mChild].clear();
-    projectIdx[mChild].clear();
-    projectExist[mChild].clear();
-    projectTime[mChild].clear();
-    hashTable[mChild].clear();
-}
-
-void callTree(string mBranch) {
-    if (projectTree[mBranch].size() == 0) {
-        mergeChild(mBranch);
-        return;
+    for (int i=0; i < project[mBranch].size(); i++) {
+        copyFile(mBranch, project[mBranch][i].fname, project[mBranch][i].data, project[mBranch][i].cTime, project[mBranch][i].eTime);
     }
 
-    for (int i=0; i < projectTree[mBranch].size(); i++) {
-        callTree(projectTree[mBranch][i]);
-    }
-    mergeChild(mBranch);
+    pQueue[mBranch].clear();
+    project[mBranch].clear();
+    dict[mBranch].clear();
+    projectTree[mBranch].clear();
+    
     return;
 }
 
+void callTree(string mBranch) {
+
+	if (projectTree[mBranch].size() == 0) {
+		mergeToParent(mBranch);
+		return;
+	}
+	
+	for (int i = 0; i < projectTree[mBranch].size(); i++) {
+		callTree(projectTree[mBranch][i]);
+	}
+
+	mergeToParent(mBranch);
+	return;
+}
 
 void edit(int mTime, char mBranch[], char mFile[], char mData[]) {
-    int idx = projectIdx[mBranch][mFile];
-    project[mBranch][idx][1] = mData;
-    for (int i=0; i < projectTime[mBranch].size(); i++) {
-        if (projectTime[mBranch][i][2] == idx) {
-            projectTime[mBranch][i][1] = mTime;
-        }
-    }
+	int idx = dict[mBranch][mFile];
+    project[mBranch][idx].data = mData;
+    project[mBranch][idx].eTime = mTime;
+
+	return;
 }
 
 void branch(int mTime, char mBranch[], char mChild[]) {
-    project[mChild] = project[mBranch];
-    projectTime[mChild] = projectTime[mBranch];
-    projectIdx[mChild] = projectIdx[mBranch];
-    projectExist[mChild] = projectExist[mBranch];
+	project[mChild] = project[mBranch];
+    pQueue[mChild] = pQueue[mBranch];
+	dict[mChild] = dict[mBranch];
 
-    projectTree[mBranch].push_back(mChild);
-    hashTable[mChild] = mBranch;
+	projectTree[mBranch].push_back(mChild);
+	hashParent[mChild] = mBranch;
+
+    return;
 }
 
 void merge(int mTime, char mBranch[]) {
-    callTree(mBranch);
+	callTree(mBranch);
 }
 
 int readfile(int mTime, char mBranch[], char mFile[], char retString[]) {
-    int lenString = 0;
-    int idx = projectIdx[mBranch][mFile];
-    string data = project[mBranch][idx][1];
+	int lenString = 0;
+    int idx = dict[mBranch][mFile];
+    string data = project[mBranch][idx].data;
     for (int i=0; i < data.size(); i++) {
         lenString++;
         retString[i] = data[i];
     }
     retString[data.size()] = '\0';
-    return lenString;
+
+	return lenString;
 }
