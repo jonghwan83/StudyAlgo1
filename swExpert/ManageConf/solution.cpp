@@ -40,7 +40,7 @@ void init() {
     projectTree.clear();
     hashParent.clear();
 
-    vector<string> temp = {};
+    vector<string> temp;
     projectTree["root"] = temp;
 
     return;
