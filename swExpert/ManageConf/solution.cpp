@@ -70,6 +70,7 @@ void createFromChild(int mTime, string mBranch, string mFile, string mData, int 
 
     project[mBranch].push_back(temp);
     pQueue[mBranch].push_back(make_pair(mTime, (int)project[mBranch].size() - 1));
+
     push_heap(pQueue[mBranch].begin(), pQueue[mBranch].end(), compare);
     dict[mBranch][mFile] = (int)project[mBranch].size() - 1;
 
@@ -77,7 +78,7 @@ void createFromChild(int mTime, string mBranch, string mFile, string mData, int 
 }
 
 void checkBranch(string mBranch) {
-    // check if branck size > 50
+    // check if branck size > 50 after merging
     int idxFront;
     while (pQueue[mBranch].size() > 50) {
         idxFront = pQueue[mBranch][0].second;
@@ -94,11 +95,9 @@ void copyFile(string mChild, string mFile, string mData, int cTime, int eTime) {
     int idx = dict[parent][mFile];
 
     if ((project[parent][idx].isExist) && (project[parent][idx].fname == mFile)) {
-        if (cTime == project[parent][idx].cTime) {
-            if (eTime > project[parent][idx].eTime) {
-                project[parent][idx].eTime = eTime;
-                project[parent][idx].data = mData;
-            }
+        if (cTime == project[parent][idx].cTime && eTime > project[parent][idx].eTime) {
+            project[parent][idx].eTime = eTime;
+            project[parent][idx].data = mData;
         }
     }
     else {
@@ -112,7 +111,7 @@ void mergeToParent(string mBranch) {
     int idx;
     for (int i = 0; i < pQueue[mBranch].size(); i++) {
         idx = pQueue[mBranch][i].second;
-        copyFile(mBranch, project[mBranch][idx].fname, project[mBranch][idx].data, project[mBranch][idx].cTime, project[mBranch][i].eTime);
+        copyFile(mBranch, project[mBranch][idx].fname, project[mBranch][idx].data, project[mBranch][idx].cTime, project[mBranch][idx].eTime);
     }
 
     // check parent node size
@@ -133,7 +132,7 @@ void callTree(string mBranch) {
         mergeToParent(mBranch);
         return;
     }
-
+    int idx;
     for (int i = 0; i < projectTree[mBranch].size(); i++) {
         callTree(projectTree[mBranch][i]);
     }

@@ -73,7 +73,7 @@ bool isOkey = true;
     isOkey = false;
    else if (strcmp(retString, mData) != 0)
     isOkey = false;
-//    printf("q: %d %d %d %d\n", q, isOkey, len, ans);
+
    break;
 
   default:
@@ -94,7 +94,7 @@ int main()
  scanf("%d %d", &T, &MARK);
  for (int tc = 1; tc <= T; tc++) {
   printf("#%d %d\n", tc, run() ? MARK : 0);
-//   if (tc == 11) { break; }
+
  }
 
  end = clock() - start;
