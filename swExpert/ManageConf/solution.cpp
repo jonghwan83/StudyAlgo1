@@ -78,7 +78,7 @@ void createFromChild(int mTime, string mBranch, string mFile, string mData, int 
 }
 
 void checkBranch(string mBranch) {
-    // check if branck size > 50 after merging
+    // check if branch size > 50 after merging
     int idxFront;
     while (pQueue[mBranch].size() > 50) {
         idxFront = pQueue[mBranch][0].second;
