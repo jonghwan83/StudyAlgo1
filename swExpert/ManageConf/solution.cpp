@@ -132,7 +132,7 @@ void callTree(string mBranch) {
         mergeToParent(mBranch);
         return;
     }
-    int idx;
+
     for (int i = 0; i < projectTree[mBranch].size(); i++) {
         callTree(projectTree[mBranch][i]);
     }
