@@ -8,7 +8,7 @@
 using namespace std;
 
 
-struct FileDetail {
+class FileDetail {
 public:
     int cTime;
     int eTime;
