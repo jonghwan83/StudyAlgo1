@@ -1,11 +1,12 @@
 #include <vector>
+#include <cmath>
 #include <iostream>
 
 using namespace std;
 
 int n, m, k;
-vector<int> arr;
-vector<int> tree;
+vector<long long> arr;
+vector<long long> tree;
 
 void makeTree(int idx, int start, int end) {
     if (start == end) {
@@ -18,7 +19,7 @@ void makeTree(int idx, int start, int end) {
     tree[idx] = tree[2 * idx] + tree[2 * idx + 1];
 }
 
-void update(int node, int idx, int start, int end, int diff) {
+void update(int node, long long idx, int start, int end, long long diff) {
     if (idx < start || idx > end) { return; }
     tree[node] = tree[node] + diff;
     if (start != end) {
@@ -27,45 +28,42 @@ void update(int node, int idx, int start, int end, int diff) {
     }
 }
 
-void updateTree(int idx, int val) {
-    int diff = val - arr[idx];
+void updateTree(long long idx, long long val) {
+    long long diff = val - arr[idx];
     arr[idx] = val;
-    update(1, idx, 0, arr.size() - 1, diff);
+    update(1, idx, 0, (int)arr.size() - 1, diff);
 }
 
-int query(int node, int start, int end, int left, int right) {
+long long query(int node, int start, int end, long long left, long long right) {
     if (left > end || right < start) { return 0; }
     if (left <= start && end <= right) { return tree[node]; }
-    int lsum = query(node * 2, start, (start + end) / 2, left, right);
-    int rsum = query(node * 2 + 1, (start + end) / 2 + 1, end, left, right);
-    
+    long long lsum = query(node * 2, start, (start + end) / 2, left, right);
+    long long rsum = query(node * 2 + 1, (start + end) / 2 + 1, end, left, right);
+
     return lsum + rsum;
 }
 
 int main() {
-    freopen("../sample_input.txt", "r", stdin);
+    //freopen("sample_input.txt", "r", stdin);
     cin >> n >> m >> k;
+    int h = (int)ceil(log2(n));
 
     arr.resize(n);
-    tree.resize(2 * n);
+    tree.resize(1 << (h+1));
     for (int i = 0; i < n; i++) {
         cin >> arr[i];
     }
 
-    makeTree(1, 0, arr.size()-1);
-    int c, idx, val;
-    for (int i=0; i < n+m; i++) {
-        cin >> c >> idx >> val;
+    makeTree(1, 0, (int)arr.size() - 1);
+    int c;
+    long long t1, t2;
+    for (int i = 0; i < m + k; i++) {
+        cin >> c >> t1 >> t2;
         if (c == 1) {
-            updateTree(idx - 1, val);
+            updateTree(t1 - 1, t2);
         }
         if (c == 2) {
-            cout << query(1, 0, arr.size()-1, idx, val) << endl;
+            cout << query(1, 0, (int)arr.size() - 1, t1 - 1, t2 - 1) << "\n";
         }
     }
-
-    for (int i=0; i < tree.size(); i++) {
-        cout << tree[i] << " ";
-    }
-    cout << endl;
 }
