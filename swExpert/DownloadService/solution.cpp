@@ -1,154 +1,107 @@
 #include <vector>
-#include <unordered_map>
 
 using namespace std;
 
-
 struct Result {
-    int finish;
-    int param;
+ int finish;
+ int param;
 };
 
-class PC {
-public:
+class PC {  
+public: 
     int id;
+    int speed;
     int capacity;
-    int sTime;
-    int speed;
     int eTime;
-    bool isComplete;
-    bool isRemoved;
-
-    PC (int pcID, int capa, int start, int sp) {
-        id = pcID;
-        capacity = capa;
-        sTime = start;
-        speed = sp;
-        isComplete = false;
-        isRemoved = false;
-    }
 };
 
-class Hub {
+class Clients {
 public:
-    int id;
-    int speed;
-    int nClient;
     vector<int> children;
-    vector<PC> clients;
+    int cID;
+    int speed;
+    bool isPC;
+    int nConnected;
+    int sTime;
 };
 
-unordered_map<int, Hub> fileTree;
-unordered_map<int, int> idParent;
-unordered_map<int, pair<int, int> > idxPC;
+vector<PC> downloads;   // pc id 로 정보를 검색
+vector<Clients> serverTree;
+vector<int> idxParent;
 
-void updatePC(int parent, int cTime) {
-    int tStart;
-    for (int i=0; i < fileTree[parent].clients.size(); i++) {
-        tStart = fileTree[parent].clients[i].sTime;
-        fileTree[parent].clients[i].capacity -= (cTime - tStart) * fileTree[parent].clients[i].speed;
-        fileTree[parent].clients[i].sTime = cTime;
-        fileTree[parent].clients[i].speed = (int)fileTree[parent].speed / fileTree[parent].nClient;
-        if (fileTree[parent].clients[i].capacity <= 0) {
-            fileTree[parent].clients[i].eTime = cTime + fileTree[parent].clients[i].capacity / fileTree[parent].clients[i].speed;
+void updateConnection(int hubID) {
+    int parent = idxParent[hubID];
+    if (serverTree[hubID].isPC) {
+        serverTree[parent].nConnected++;
+    } 
+    else {
+        if (serverTree[hubID].nConnected == 1) {
+            serverTree[parent].nConnected++;
         }
     }
+    if (parent == 0) { return; }
+    updateConnection(parent);
 }
 
-void updateHub(int hubID, int cTime) {
-    updatePC(hubID, cTime);
-    for (int i=0; i < fileTree[hubID].children.size(); i++) {
-        updateHub(fileTree[hubID].children[i], cTime);
-    }
-}
+void updateSpeed(int hubID) {
+    // from root node
 
-int sumClinets(int parent) {
-    int ans = 0;
-    for (int i=0; i < fileTree[parent].children.size(); i++) {
-        if (fileTree[fileTree[parent].children[i]].nClient > 0) {
-            ans++;
-        }
-    }
-    return ans + fileTree[parent].clients.size();
-}
-
-void updateClients(int node) {
-    if (node == 0) {
-        fileTree[node].nClient = sumClinets(node);
-        return;
-    }
-    fileTree[node].nClient = sumClinets(node);
-    updateClients(idParent[node]);
-}
-
-void updateSpeed(int node, int cTime) {
-    int childNode;
-    if (node == 0) {
-        updatePC(node, cTime);
-    }
-    for (int i=0; i < (int)fileTree[node].children.size(); i++) {
-        childNode = fileTree[node].children[i];
-        if (fileTree[node].nClient < 1) {
-            continue;
-        }
-        fileTree[childNode].speed = (int)(fileTree[node].speed / fileTree[node].nClient);
-        updatePC(childNode, cTime);
-        updateSpeed(childNode, cTime);
+    for (int idx: serverTree[hubID].children) {
+        if (serverTree[idx].nConnected == 0) { continue; }
+        serverTree[idx].speed = serverTree[hubID].speed / serverTree[hubID].nConnected;   
+        if (serverTree[idx].isPC) {
+            downloads[idx].speed = serverTree[idx].speed;
+        } 
+        updateSpeed(idx);
     }
 }
 
 void init(int mCapa)
 {
-    fileTree.clear();
-    idParent.clear();
-    idxPC.clear();
+    downloads.clear();
+    serverTree.clear();
+    idxParent.clear();
 
-    fileTree[0].id = 0;
-    fileTree[0].speed = mCapa;
+    serverTree.resize(50001);
+    downloads.resize(50001);
+    idxParent.resize(50001);
+
+    serverTree[0].cID = 0;
+    serverTree[0].speed = mCapa;
+    serverTree[0].sTime = 0;
 }
 
 void addHub(int mTime, int mParentID, int mID)
 {
-    fileTree[mParentID].id = mParentID;
-    fileTree[mParentID].children.push_back(mID);
-    fileTree[mID].id = mID;
+    serverTree[mParentID].children.push_back(mID);
+    serverTree[mID].cID = mID;
+    serverTree[mID].sTime = mTime;
 
-    idParent[mID] = mParentID;
+    idxParent[mID] = mParentID;
 }
 
 int removeHub(int mTime, int mID)
 {
-    updateHub(mID, mTime);
     return -1;
 }
 
 void requestDL(int mTime, int mParentID, int mpcID, int mSize)
 {
-    PC newPC(mpcID, mSize, mTime, fileTree[mParentID].speed);
-    fileTree[mParentID].clients.push_back(newPC);
+    serverTree[mParentID].children.push_back(mpcID);
+    serverTree[mpcID].cID = mpcID;
+    serverTree[mpcID].isPC = true;
+    serverTree[mpcID].sTime = mTime;
 
-    idxPC[mpcID] = make_pair(mParentID, fileTree[mParentID].clients.size() - 1);
-
-    updateClients(mParentID);
-    updateSpeed(0, mTime);
+    idxParent[mpcID] = mParentID;
+    updateConnection(mpcID);
+    updateSpeed(0);
 }
 
 Result checkPC(int mTime, int mpcID)
 {
-    Result res;
-    res.finish = 0;
-    res.param = 0;
+ Result res;
+ res.finish = 0;
+ res.param = 0;
 
-    int parent = idxPC[mpcID].first;
-    int idx = idxPC[mpcID].second;
-    updatePC(parent, mTime);
-
-    res.finish = fileTree[parent].clients[idx].isComplete;
-    if (res.finish) {
-        res.param = fileTree[parent].clients[idx].eTime;
-    }
-    else {
-        res.param = fileTree[parent].clients[idx].capacity;
-    }
-    return res;
+ return res;
 }
