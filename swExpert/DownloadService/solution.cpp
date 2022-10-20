@@ -1,5 +1,7 @@
+#define DSIZE 1000001
+
 #include <vector>
-#include <iostream>
+#include <algorithm>
 
 using namespace std;
 
@@ -13,6 +15,12 @@ public:
     int id;
     int capacity;
     int eTime;
+    bool isComplete;
+    PC () {
+        id = -1;
+        eTime = -1;
+        isComplete = false;
+    }
 };
 
 class Clients {
@@ -27,58 +35,103 @@ public:
 
 vector<PC> downloads;
 vector<Clients> serverTree;
-vector<int> idxParent;
+vector<int> idxParent, pclist, subPCs;
+pair<int, int> firstFinTime;
 int currentTime;
 
 void updateConnection(int hubID) {
     int parent = idxParent[hubID];
-    if (serverTree[hubID].isPC) {
-        serverTree[parent].nConnected++;
-    }
+    if (serverTree[hubID].isPC) { serverTree[parent].nConnected++; }
     else {
-        if (serverTree[hubID].nConnected == 1) {
-        serverTree[parent].nConnected++;
-        } 
+        if (serverTree[hubID].nConnected == 1) { serverTree[parent].nConnected++; } 
         else { return; }    
     }
-    
     if (parent == 0) { return; }
     updateConnection(parent);
 }
 
-void executeDownload(int pcID) {
-    downloads[pcID].capacity -= serverTree[pcID].speed * (currentTime - serverTree[pcID].sTime);
-    if (downloads[pcID].capacity <= 0 ) {
-        downloads[pcID].eTime = currentTime + (downloads[pcID].capacity / serverTree[pcID].sTime);
+void cutConnection(int hubID) {
+    int parent = idxParent[hubID];
+    if (serverTree[hubID].isPC) { serverTree[parent].nConnected--; }
+    else {
+        if (serverTree[hubID].nConnected == 0) { serverTree[parent].nConnected--; }
+        else { return; }
     }
-    serverTree[pcID].sTime = currentTime;
+    if (parent == 0) { return; }
+    cutConnection(parent);
 }
 
-void updateSpeed(int hubID) {
-    // from root node
-    for (int idx: serverTree[hubID].children) {
-        if (serverTree[idx].isPC) {
-            executeDownload(idx);
-            serverTree[idx].speed = serverTree[hubID].speed / serverTree[hubID].nConnected;
+void getFirstFinTime() {
+    firstFinTime = make_pair(DSIZE, -1);
+    int capa;
+    vector<pair<int, int> > templist;
+    for (int pcID: pclist) {
+        capa = downloads[pcID].capacity - (serverTree[pcID].speed * (currentTime - serverTree[pcID].sTime));
+        if (capa <= 0 && !downloads[pcID].isComplete) {
+            templist.push_back(make_pair(-capa, pcID));
+            push_heap(templist.begin(), templist.end());
         }
-        if (serverTree[idx].nConnected == 0) { continue; }
-        serverTree[idx].speed = serverTree[hubID].speed / serverTree[hubID].nConnected;
-        updateSpeed(idx);
+    }
+    if (!templist.empty()){
+        firstFinTime.first = currentTime + (-templist.front().first / serverTree[templist.front().second].speed);
+        firstFinTime.second = templist.front().second;
     }
 }
 
-void updateHub(int hubID) {
-    if (serverTree[hubID].children.empty()) { return; }
-    for (int idx: serverTree[hubID].children) {
-        if (serverTree[idx].isPC) { executeDownload(idx); }
-        updateHub(idx);
+void executeDownload(int pcID, int cTime) {
+    downloads[pcID].capacity -= serverTree[pcID].speed * (cTime - serverTree[pcID].sTime);
+    if (downloads[pcID].capacity <= 0 ) {
+        downloads[pcID].eTime = cTime + (downloads[pcID].capacity / serverTree[pcID].speed);
+        downloads[pcID].isComplete = true;
+        serverTree[pcID].speed = 0;
+        return;
+    }
+    serverTree[pcID].sTime = cTime;
+}
+
+void updateSpeed(int hubID, int cTime) {
+    for (int child: serverTree[hubID].children) {
+        if (serverTree[child].isPC && !downloads[child].isComplete) { 
+            executeDownload(child, cTime);
+            if (downloads[child].isComplete) {
+                cutConnection(child);
+            }
+            else {
+                serverTree[child].speed = serverTree[hubID].speed / serverTree[hubID].nConnected; 
+            }
+        }
+        if (serverTree[child].nConnected == 0) { continue; }
+        serverTree[child].speed = serverTree[hubID].speed / serverTree[hubID].nConnected;
+        updateSpeed(child, cTime);
+    }
+}
+
+void updateNet() {
+    getFirstFinTime();
+    while (firstFinTime.first < DSIZE) {
+        executeDownload(firstFinTime.second, firstFinTime.first);
+        cutConnection(firstFinTime.second);
+        updateSpeed(0, firstFinTime.first);
+        getFirstFinTime();
+    }
+}
+
+void checkSubPC(int hubID) {
+    for (int child: serverTree[hubID].children) {
+        if (serverTree[child].isPC && !downloads[child].isComplete) {
+            subPCs.push_back(child);
+        }
+        checkSubPC(child);
     }
 }
 
 void init(int mCapa)
 {
     currentTime = 0;
+    firstFinTime = make_pair(DSIZE, -1);
 
+    pclist.clear();
+    subPCs.clear();
     downloads.clear();
     serverTree.clear();
     idxParent.clear();
@@ -105,12 +158,22 @@ void addHub(int mTime, int mParentID, int mID)
 int removeHub(int mTime, int mID)
 {
     currentTime = mTime;
-    updateHub(mID);
-    return -1;
+    subPCs.clear();
+    
+    updateNet();
+    updateSpeed(0, currentTime);
+    checkSubPC(mID);
+
+    if (subPCs.empty()) {
+        return 1;
+    }
+    return 0;
 }
 
 void requestDL(int mTime, int mParentID, int mpcID, int mSize)
 {
+    pclist.push_back(mpcID);
+
     currentTime = mTime;
     serverTree[mParentID].children.push_back(mpcID);
     serverTree[mpcID].cID = mpcID;
@@ -121,17 +184,28 @@ void requestDL(int mTime, int mParentID, int mpcID, int mSize)
 
     downloads[mpcID].capacity = mSize;
 
+    updateNet();
     updateConnection(mpcID);
-    updateSpeed(0);
-
-    // printf("speed: %d %d %d\n", serverTree[50].speed, serverTree[0].nConnected, downloads[50].capacity);
+    updateSpeed(0, currentTime);
 }
 
 Result checkPC(int mTime, int mpcID)
 {
- Result res;
- res.finish = 0;
- res.param = 0;
+    Result res;
+    res.finish = 0;
+    res.param = 0;
 
- return res;
+    currentTime = mTime;
+
+    updateNet();
+    updateSpeed(0, currentTime);
+
+    res.finish = downloads[mpcID].isComplete;
+    if (res.finish) {
+        res.param = downloads[mpcID].eTime;
+    }
+    else {
+        res.param = downloads[mpcID].capacity;
+    }
+    return res; 
 }
