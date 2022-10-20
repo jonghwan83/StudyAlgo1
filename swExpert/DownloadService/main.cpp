@@ -34,7 +34,6 @@ scanf("%d", &q);
  bool okay = false;
 
  for (int i = 0; i < q; ++i) {
-  printf("current Q: %d \n", i + 1);
   scanf("%d", &cmd);
   switch (cmd) {
   case CMD_INIT:
@@ -88,7 +87,6 @@ int main() {
  for (int tc = 1; tc <= T; tc++) {
   int score = run() ? MARK : 0;
   printf("#%d %d\n", tc, score);
-  if (tc == 1) { break; }
  }
 
  end = clock()- start;
