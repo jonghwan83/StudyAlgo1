@@ -1,4 +1,5 @@
 #define DSIZE 1000001
+#define MAXNODE 50001
 
 #include <vector>
 #include <algorithm>
@@ -20,6 +21,7 @@ public:
         id = -1;
         eTime = -1;
         isComplete = false;
+        capacity = 0;
     }
 };
 
@@ -31,11 +33,21 @@ public:
     bool isPC;
     int nConnected;
     int sTime;
+    Clients() {
+        cID = -1;
+        speed = 0;
+        isPC = false;
+        nConnected = 0;
+        sTime = 0;
+        children.clear();
+    }
 };
 
-vector<PC> downloads;
-vector<Clients> serverTree;
-vector<int> idxParent, pclist, subPCs;
+vector<PC> downloads(MAXNODE);
+vector<Clients> serverTree(MAXNODE);
+vector<int> idxParent(MAXNODE);
+vector<int> pclist(MAXNODE);
+vector<int> subPCs;
 pair<int, int> firstFinTime;
 int currentTime;
 
@@ -126,6 +138,16 @@ void checkSubPC(int hubID) {
     }
 }
 
+void initVar(int hubID, Clients client, PC pc) {
+    for (int child : serverTree[hubID].children) {
+        initVar(child, client, pc);
+        serverTree[child] = client;
+        downloads[child] = pc;
+    }
+    serverTree[hubID] = client;
+    downloads[hubID] = pc;
+}
+
 void init(int mCapa)
 {
     currentTime = 0;
@@ -133,13 +155,9 @@ void init(int mCapa)
 
     pclist.clear();
     subPCs.clear();
-    downloads.clear();
-    serverTree.clear();
-    idxParent.clear();
-
-    serverTree.resize(50001);
-    downloads.resize(50001);
-    idxParent.resize(50001);
+    Clients client;
+    PC pc;
+    initVar(0, client, pc);
 
     serverTree[0].cID = 0;
     serverTree[0].speed = mCapa;
