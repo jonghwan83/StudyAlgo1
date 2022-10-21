@@ -6,17 +6,17 @@
 using namespace std;
 
 struct Result {
- int finish;
- int param;
+    int finish;
+    int param;
 };
 
-class PC {  
-public: 
+class PC {
+public:
     int id;
     int capacity;
     int eTime;
     bool isComplete;
-    PC () {
+    PC() {
         id = -1;
         eTime = -1;
         isComplete = false;
@@ -43,8 +43,8 @@ void updateConnection(int hubID) {
     int parent = idxParent[hubID];
     if (serverTree[hubID].isPC) { serverTree[parent].nConnected++; }
     else {
-        if (serverTree[hubID].nConnected == 1) { serverTree[parent].nConnected++; } 
-        else { return; }    
+        if (serverTree[hubID].nConnected == 1) { serverTree[parent].nConnected++; }
+        else { return; }
     }
     if (parent == 0) { return; }
     updateConnection(parent);
@@ -63,41 +63,42 @@ void cutConnection(int hubID) {
 
 void getFirstFinTime() {
     firstFinTime = make_pair(DSIZE, -1);
-    int capa;
+    int capa, fTime;
     vector<pair<int, int> > templist;
-    for (int pcID: pclist) {
+    for (int pcID : pclist) {
         capa = downloads[pcID].capacity - (serverTree[pcID].speed * (currentTime - serverTree[pcID].sTime));
         if (capa <= 0 && !downloads[pcID].isComplete) {
-            templist.push_back(make_pair(-capa, pcID));
+            fTime = currentTime + (capa / serverTree[pcID].speed);
+            templist.push_back(make_pair(-fTime, pcID));
             push_heap(templist.begin(), templist.end());
         }
     }
-    if (!templist.empty()){
-        firstFinTime.first = currentTime + (-templist.front().first / serverTree[templist.front().second].speed);
+    if (!templist.empty()) {
+        firstFinTime.first = -templist.front().first;
         firstFinTime.second = templist.front().second;
     }
 }
 
 void executeDownload(int pcID, int cTime) {
     downloads[pcID].capacity -= serverTree[pcID].speed * (cTime - serverTree[pcID].sTime);
-    if (downloads[pcID].capacity <= 0 ) {
+    if (downloads[pcID].capacity <= 0) {
         downloads[pcID].eTime = cTime + (downloads[pcID].capacity / serverTree[pcID].speed);
         downloads[pcID].isComplete = true;
         serverTree[pcID].speed = 0;
-        return;
     }
     serverTree[pcID].sTime = cTime;
 }
 
 void updateSpeed(int hubID, int cTime) {
-    for (int child: serverTree[hubID].children) {
-        if (serverTree[child].isPC && !downloads[child].isComplete) { 
+    for (int child : serverTree[hubID].children) {
+        if (serverTree[child].isPC && !downloads[child].isComplete) {
             executeDownload(child, cTime);
             if (downloads[child].isComplete) {
                 cutConnection(child);
+                updateSpeed(0, cTime);
             }
             else {
-                serverTree[child].speed = serverTree[hubID].speed / serverTree[hubID].nConnected; 
+                serverTree[child].speed = serverTree[hubID].speed / serverTree[hubID].nConnected;
             }
         }
         if (serverTree[child].nConnected == 0) { continue; }
@@ -117,7 +118,7 @@ void updateNet() {
 }
 
 void checkSubPC(int hubID) {
-    for (int child: serverTree[hubID].children) {
+    for (int child : serverTree[hubID].children) {
         if (serverTree[child].isPC && !downloads[child].isComplete) {
             subPCs.push_back(child);
         }
@@ -159,7 +160,7 @@ int removeHub(int mTime, int mID)
 {
     currentTime = mTime;
     subPCs.clear();
-    
+
     updateNet();
     updateSpeed(0, currentTime);
     checkSubPC(mID);
@@ -172,8 +173,12 @@ int removeHub(int mTime, int mID)
 
 void requestDL(int mTime, int mParentID, int mpcID, int mSize)
 {
-    pclist.push_back(mpcID);
 
+    currentTime = mTime - 1;
+    updateNet();
+    updateSpeed(0, currentTime);
+
+    pclist.push_back(mpcID);
     currentTime = mTime;
     serverTree[mParentID].children.push_back(mpcID);
     serverTree[mpcID].cID = mpcID;
@@ -181,7 +186,6 @@ void requestDL(int mTime, int mParentID, int mpcID, int mSize)
     serverTree[mpcID].sTime = mTime;
 
     idxParent[mpcID] = mParentID;
-
     downloads[mpcID].capacity = mSize;
 
     updateNet();
@@ -207,5 +211,5 @@ Result checkPC(int mTime, int mpcID)
     else {
         res.param = downloads[mpcID].capacity;
     }
-    return res; 
+    return res;
 }
