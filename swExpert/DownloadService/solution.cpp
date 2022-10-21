@@ -188,7 +188,6 @@ void requestDL(int mTime, int mParentID, int mpcID, int mSize)
     idxParent[mpcID] = mParentID;
     downloads[mpcID].capacity = mSize;
 
-    updateNet();
     updateConnection(mpcID);
     updateSpeed(0, currentTime);
 }
