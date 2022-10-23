@@ -2,6 +2,7 @@
 #include <string>
 #include <unordered_map>
 #include <algorithm>
+#include <iostream>
 
 using namespace std;
 
@@ -31,10 +32,13 @@ public:
     }
 };
 
-int pSize;
+int pSize, boardSize;
 vector< vector<Piece> > board;
 vector< vector<bool> > onBoard;
 unordered_map< int, vector<PieceLoc> > possiblePiece;
+
+vector<int> drows = { -1, 0, 1, 0 };
+vector<int> dcols = { 0, 1, 0, -1 };
 
 int getReverse(int p) {
     string s = to_string(p);
@@ -97,18 +101,42 @@ pair<int, int> key2loc(string key) {
     return make_pair(stoi(temp.first), stoi(temp.second));
 }
 
+bool checkShape(int p1, Piece p2, int dir) {
+    if (dir == 0 && p2.down != 0 && p2.up != p1) {
+        return false;
+    }
+    else if (dir == 1 && p2.left != 0 && p2.right != p1) {
+        return false;
+    }
+    else if (dir == 2 && p2.up != 0 && p2.down != p1) {
+        return false;
+    }
+    else if (dir == 3 && p2.right != 0 && p2.left != p1) {
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+
 vector<int> checkNfit(vector<int> p) {
     vector<int> ans(3);
     ans[0] = 0;
     ans[1] = 1001;
     ans[2] = 1001;
 
+    int dr, dc;
     unordered_map <string, int> nMap;
     string key;
     vector< pair<int, int> > locations;
     for (int i=0; i < 4; i++) {
-        if (!possiblePiece[p[i]].empty()) {
+        if (!possiblePiece[p[i]].empty()) {            
             for (PieceLoc loc: possiblePiece[p[i]]) {
+                if (!checkShape(p[i], board[loc.row][loc.col], i)) {
+                    printf("here!! \n");
+                    return ans;
+                    }
+
                 if (loc.dir == i) {
                     key = loc2key(loc.row, loc.col);
                     nMap[key]++; 
@@ -120,18 +148,18 @@ vector<int> checkNfit(vector<int> p) {
     pair<int, int> temp;
     for (auto loc: nMap) {
         temp = key2loc(loc.first);
-        if (ans[0] < loc.second) {
+        if (ans[0] < loc.second && !onBoard[temp.first][temp.second]) {
             ans[0] = loc.second;
             ans[1] = temp.first;
             ans[2] = temp.second;
         }
-        else if (ans[0] == loc.second) {
+        else if (ans[0] == loc.second && !onBoard[temp.first][temp.second]) {
             if (temp.first < ans[1]) {
                 ans[0] = loc.second;
                 ans[1] = temp.first;
                 ans[2] = temp.second;
             }
-            else if( temp.first == ans[1] && temp.second < ans[2]) {
+            else if(temp.first == ans[1] && temp.second < ans[2]) {
                 ans[0] = loc.second;
                 ans[1] = temp.first;
                 ans[2] = temp.second;
@@ -140,6 +168,39 @@ vector<int> checkNfit(vector<int> p) {
     }
     // 0: 맞닿는 면 개수, 1: row, 2: col
     return ans;
+}
+
+void placePiece(int r, int c, int nRotate, int mPiece[4]) {
+    vector<int> p(4);
+    for (int i=0; i < 4; i++) {
+        p[(i + nRotate) % 4] = mPiece[i];
+    }
+
+    onBoard[r][c] = true;
+    int dr, dc;
+    for (int i=0; i < 4; i++) {
+        dr = r + drows[i];
+        dc = c + dcols[i];
+
+        if (0 <= dr && dr < boardSize && 0 <= dc && dc < boardSize && !onBoard[dr][dc]) {
+            if (i == 0) {
+            board[dr][dc].down = getReverse(getCounterPiece(p[i]));
+            addPossible(board[dr][dc].down, dr, dc, 3);
+            }
+            else if (i == 1) {
+                board[dr][dc].left = getReverse(getCounterPiece(p[i]));
+                addPossible(board[dr][dc].left, dr, dc, 3);
+            }
+            else if (i == 2) {
+                board[dr][dc].up = getCounterPiece(getReverse(p[i]));
+                addPossible(board[dr][dc].up, dr, dc, 0);
+            }
+            else {
+                board[dr][dc].right = getCounterPiece(getReverse(p[i]));
+                addPossible(board[dr][dc].right, dr, dc, 1);
+            }
+        }
+    }
 }
 
 void printBoard(int k) {
@@ -159,6 +220,7 @@ void init(int N, int M, int mU[][4], int mR[][4], int mB[][4], int mL[][4]) {
     onBoard.clear();
 
     pSize = M;
+    boardSize = N;
 
     board.resize(N);
     onBoard.resize(N);
@@ -177,7 +239,7 @@ void init(int N, int M, int mU[][4], int mR[][4], int mB[][4], int mL[][4]) {
         board[i][0].left = getReverse(getCounterPiece(mL[i][1]));
         addPossible(board[i][0].left, i, 0, 3);
     }
-
+    printBoard(boardSize);
 }
 
 void destroy() {
@@ -192,14 +254,42 @@ int put(int mPiece[4]) {
 
     vector< vector<int> > pq;
     vector<int> temp;
-
-    for (int i=0; i < 3; i++) {
-        pq.push_back(checkNfit(p));
+    for (int i=0; i < 4; i++) {
+        temp.clear();
+        temp = checkNfit(p);
+        temp.push_back(i);
+        
+        pq.push_back(temp);
         push_heap(pq.begin(), pq.end());
         p = rotatePiece(p);
     }
 
-    printf("%d %d %d %d\n", pq.front()[0], pq.front()[1], pq.front()[2]);
+    if (pq.front()[0] > 0) {
+        placePiece(pq.front()[1], pq.front()[2], pq.front()[3], mPiece);
 
-    return -1;
+        // printf("\n");
+        // printBoard(boardSize);
+        // printf("\n");
+        // for (int i=0; i < boardSize; i++) {
+        //     for (int j=0; j < boardSize; j++) {
+        //         cout << onBoard[i][j] << " ";
+        //     }
+        //     printf("\n");
+        // }
+
+        // for (auto loc: possiblePiece) {
+        //     printf("%d: ", loc.first);
+        //     for (auto element: loc.second) {
+        //         printf("%d/%d(%d)=%d ", element.row, element.col, element.dir, element.row+element.col+2);
+        //     }
+        //     printf("\n");
+        // }
+        // printf("\n");
+
+
+        return pq.front()[1] + pq.front()[2] + 2;
+    }
+    else {
+        return -1;
+    }
 }
