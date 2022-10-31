@@ -1,5 +1,4 @@
 #include <vector>
-#include <iostream>
 
 #define MAXSIZE 20
 #define MAXLENGTH 5
