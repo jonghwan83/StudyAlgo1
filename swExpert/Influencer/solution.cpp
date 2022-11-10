@@ -13,7 +13,6 @@ vector<int> buyingPower(MAXMEMBERS);
 vector<int> hashInfluence(MAXMEMBERS);
 vector< vector<int> > memberRanking;
 vector<int> version(MAXMEMBERS);
-vector<bool> checkDFS(MAXMEMBERS);
 
 void updateGraph(int start) {
     deque< pair<int, int> > queue;
