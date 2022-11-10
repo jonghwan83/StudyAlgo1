@@ -60,7 +60,6 @@ static bool run()
             {
                 isCorrect = false;
             }
-            // printf("q %d: %d, %d %d\n", q + 1, isCorrect, userAns, ans);
             break;
         case CMD_ADD_PURCHASING_POWER:
             scanf("%d %d", &mID, &mPower);
@@ -70,7 +69,6 @@ static bool run()
             {
                 isCorrect = false;
             }
-            // printf("q %d: %d, %d %d\n", q + 1, isCorrect, userAns, ans);
             break;
         case CMD_ADD_FRIENDSHIP:
             scanf("%d %d", &mID1, &mID2);
@@ -80,7 +78,6 @@ static bool run()
             {
                 isCorrect = false;
             }
-            // printf("q %d: %d, %d %d\n", q + 1, isCorrect, userAns, ans);
             break;
         default:
             isCorrect = false;
@@ -105,7 +102,6 @@ int main()
     {
         int score = run() ? MARK : 0;
         printf("#%d %d\n", tc, score);
-        // if (tc == 2) { break; }
     }
 
     end = clock() - start;
