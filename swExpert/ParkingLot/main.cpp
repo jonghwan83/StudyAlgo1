@@ -1,115 +1,80 @@
-#include <unordered_map>
-#include <queue>
-#include <cmath>
+#ifndef _CRT_SECURE_NO_WARNINGS
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 
-#define MAXTIME 300001
+#include <stdio.h>
+#include <time.h>
 
-using namespace std;
+extern void init(int mBaseTime, int mBaseFee, int mUnitTime, int mUnitFee, int mCapacity);
+extern int arrive(int mTime, int mCar);
+extern int leave(int mTime, int mCar);
 
-class Car {
-public:
-    int id;
-    int parkingTime;
-    int waitingTime;
-    int totalParkingTime;
-    int totalWaitingTime;
-    bool isParking;
-    bool isWaiting;
-    int waitingNo;
+/////////////////////////////////////////////////////////////////////////
 
-    Car() {
-        id = 0;
-        parkingTime = 0;
-        waitingTime = 0;
-        totalWaitingTime = 0;
-        totalParkingTime = 0;
-        isParking = false;
-        isWaiting = false;
-        waitingNo = 0;
-    }
-};
+#define CMD_INIT 1
+#define CMD_ARRIVE 2
+#define CMD_LEAVE 3
 
-int baseTime, baseFee, unitTime, unitFee, capacity, nParking, nWaiting, waitingNo;
-unordered_map<int, Car> cars;
-priority_queue< vector<int> > pQueue;
 
-int calculateFee(int mTime, int mCar) {
-    float parkingTime = (float) mTime - (float)cars[mCar].parkingTime;
-    if (parkingTime <= baseTime) {
-        return baseFee;
-    }
-    return baseFee + ceil((parkingTime - (float)baseTime) / unitTime) * unitFee;
-}
+static bool run() {
+    int q;
+    scanf("%d", &q);
 
-void init(int mBaseTime, int mBaseFee, int mUnitTime, int mUnitFee, int mCapacity) {
-    baseTime = mBaseTime;
-    baseFee = mBaseFee;
-    unitTime = mUnitTime;
-    unitFee = mUnitFee;
-    capacity = mCapacity;
+    int basetime, basefee, unittime, unitfee, capacity, mtime, mcar;
+    int cmd, ans, ret = 0;
+    bool okay = false;
 
-    nParking = 0;
-    nWaiting = 0;
-    waitingNo = 0;
+    for (int i = 1; i < q + 1; ++i) {
+        scanf("%d", &cmd);
+        switch (cmd) {
+            case CMD_INIT:
+                scanf("%d %d %d %d %d", &basetime, &basefee, &unittime, &unitfee, &capacity);
+                init(basetime, basefee, unittime, unitfee, capacity);
+                okay = true;
+                break;
 
-    cars.clear();
-    pQueue = priority_queue< vector<int> >();
+            case CMD_ARRIVE:
+                scanf("%d %d %d", &mtime, &mcar, &ans);
+                ret = arrive(mtime, mcar);
+                if (ans != ret)
+                    okay = false;
+                break;
 
-    return;
-}
+            case CMD_LEAVE:
+                scanf("%d %d %d", &mtime, &mcar, &ans);
+                ret = leave(mtime, mcar);
+                if (ans != ret)
+                    okay = false;
+                break;
 
-int arrive(int mTime, int mCar) {
-    cars[mCar].id = mCar;
-
-    if (nParking < capacity) {
-        cars[mCar].isParking = true;
-        cars[mCar].parkingTime = mTime;
-        nParking++;
-    }
-    else {
-        cars[mCar].isWaiting = true;
-        cars[mCar].waitingTime = mTime;
-        nWaiting++;
-
-        pQueue.push({ MAXTIME - mTime + cars[mCar].totalWaitingTime - cars[mCar].totalParkingTime, --waitingNo, mCar });
-        cars[mCar].waitingNo = waitingNo;
-    }
-
-    return nWaiting;
-}
-
-int leave(int mTime, int mCar) {
-    int ans = 0;
-    if (cars[mCar].isParking) {
-        ans = calculateFee(mTime, mCar);
-
-        cars[mCar].isParking = false;
-        cars[mCar].totalParkingTime += mTime - cars[mCar].parkingTime;
-        nParking--;
-    }
-
-    if (cars[mCar].isWaiting) {
-        cars[mCar].isWaiting = false;
-        cars[mCar].totalWaitingTime += mTime - cars[mCar].waitingTime;
-        nWaiting--;
-        return -1;
-    }
-
-    vector<int> car;
-    while (pQueue.size() > 0) {
-        car = pQueue.top();
-        pQueue.pop();
-
-        if (cars[car[2]].isWaiting && cars[car[2]].waitingNo == car[1]) {
-            cars[car[2]].isWaiting = false;
-            cars[car[2]].totalWaitingTime += mTime - cars[car[2]].waitingTime;
-            cars[car[2]].isParking = true;
-            cars[car[2]].parkingTime = mTime;
-            nParking++;
-            nWaiting--;
-            break;
+            default:
+                okay = false;
+                break;
         }
+
+    }
+    return okay;
+}
+
+int main() {
+    clock_t start, end;
+
+    start = clock();
+
+    setbuf(stdout, NULL);
+    freopen("sample_input.txt", "r", stdin);
+    int T, MARK;
+
+    scanf("%d %d", &T, &MARK);
+
+    for (int tc = 1; tc <= T; tc++) {
+        int score = run() ? MARK : 0;
+        printf("#%d %d\n", tc, score);
     }
 
-    return ans;
+    end = clock() - start;
+    printf("elapsed: %f\n", (float) end / CLOCKS_PER_SEC);
+
+    return 0;
+
 }

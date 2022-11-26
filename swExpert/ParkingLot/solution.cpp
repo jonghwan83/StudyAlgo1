@@ -1,80 +1,115 @@
-#ifndef _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_WARNINGS
-#endif
+#include <unordered_map>
+#include <queue>
+#include <cmath>
 
-#include <stdio.h>
-#include <time.h>
+#define MAXTIME 300001
 
-extern void init(int mBaseTime, int mBaseFee, int mUnitTime, int mUnitFee, int mCapacity);
-extern int arrive(int mTime, int mCar);
-extern int leave(int mTime, int mCar);
+using namespace std;
 
-/////////////////////////////////////////////////////////////////////////
+class Car {
+public:
+    int id;
+    int parkingTime;
+    int waitingTime;
+    int totalParkingTime;
+    int totalWaitingTime;
+    bool isParking;
+    bool isWaiting;
+    int waitingNo;
 
-#define CMD_INIT 1
-#define CMD_ARRIVE 2
-#define CMD_LEAVE 3
-
-
-static bool run() {
-    int q;
-    scanf("%d", &q);
-
-    int basetime, basefee, unittime, unitfee, capacity, mtime, mcar;
-    int cmd, ans, ret = 0;
-    bool okay = false;
-
-    for (int i = 1; i < q + 1; ++i) {
-        scanf("%d", &cmd);
-        switch (cmd) {
-            case CMD_INIT:
-                scanf("%d %d %d %d %d", &basetime, &basefee, &unittime, &unitfee, &capacity);
-                init(basetime, basefee, unittime, unitfee, capacity);
-                okay = true;
-                break;
-
-            case CMD_ARRIVE:
-                scanf("%d %d %d", &mtime, &mcar, &ans);
-                ret = arrive(mtime, mcar);
-                if (ans != ret)
-                    okay = false;
-                break;
-
-            case CMD_LEAVE:
-                scanf("%d %d %d", &mtime, &mcar, &ans);
-                ret = leave(mtime, mcar);
-                if (ans != ret)
-                    okay = false;
-                break;
-
-            default:
-                okay = false;
-                break;
-        }
-
+    Car() {
+        id = 0;
+        parkingTime = 0;
+        waitingTime = 0;
+        totalWaitingTime = 0;
+        totalParkingTime = 0;
+        isParking = false;
+        isWaiting = false;
+        waitingNo = 0;
     }
-    return okay;
+};
+
+int baseTime, baseFee, unitTime, unitFee, capacity, nParking, nWaiting, waitingNo;
+unordered_map<int, Car> cars;
+priority_queue< vector<int> > pQueue;
+
+int calculateFee(int mTime, int mCar) {
+    float parkingTime = (float) mTime - (float)cars[mCar].parkingTime;
+    if (parkingTime <= baseTime) {
+        return baseFee;
+    }
+    return baseFee + ceil((parkingTime - (float)baseTime) / unitTime) * unitFee;
 }
 
-int main() {
-    clock_t start, end;
+void init(int mBaseTime, int mBaseFee, int mUnitTime, int mUnitFee, int mCapacity) {
+    baseTime = mBaseTime;
+    baseFee = mBaseFee;
+    unitTime = mUnitTime;
+    unitFee = mUnitFee;
+    capacity = mCapacity;
 
-    start = clock();
+    nParking = 0;
+    nWaiting = 0;
+    waitingNo = 0;
 
-    setbuf(stdout, NULL);
-    freopen("sample_input.txt", "r", stdin);
-    int T, MARK;
+    cars.clear();
+    pQueue = priority_queue< vector<int> >();
 
-    scanf("%d %d", &T, &MARK);
+    return;
+}
 
-    for (int tc = 1; tc <= T; tc++) {
-        int score = run() ? MARK : 0;
-        printf("#%d %d\n", tc, score);
+int arrive(int mTime, int mCar) {
+    cars[mCar].id = mCar;
+
+    if (nParking < capacity) {
+        cars[mCar].isParking = true;
+        cars[mCar].parkingTime = mTime;
+        nParking++;
+    }
+    else {
+        cars[mCar].isWaiting = true;
+        cars[mCar].waitingTime = mTime;
+        nWaiting++;
+
+        pQueue.push({ MAXTIME - mTime + cars[mCar].totalWaitingTime - cars[mCar].totalParkingTime, --waitingNo, mCar });
+        cars[mCar].waitingNo = waitingNo;
     }
 
-    end = clock() - start;
-    printf("elapsed: %f\n", (float) end / CLOCKS_PER_SEC);
+    return nWaiting;
+}
 
-    return 0;
+int leave(int mTime, int mCar) {
+    int ans = 0;
+    if (cars[mCar].isParking) {
+        ans = calculateFee(mTime, mCar);
 
+        cars[mCar].isParking = false;
+        cars[mCar].totalParkingTime += mTime - cars[mCar].parkingTime;
+        nParking--;
+    }
+
+    if (cars[mCar].isWaiting) {
+        cars[mCar].isWaiting = false;
+        cars[mCar].totalWaitingTime += mTime - cars[mCar].waitingTime;
+        nWaiting--;
+        return -1;
+    }
+
+    vector<int> car;
+    while (pQueue.size() > 0) {
+        car = pQueue.top();
+        pQueue.pop();
+
+        if (cars[car[2]].isWaiting && cars[car[2]].waitingNo == car[1]) {
+            cars[car[2]].isWaiting = false;
+            cars[car[2]].totalWaitingTime += mTime - cars[car[2]].waitingTime;
+            cars[car[2]].isParking = true;
+            cars[car[2]].parkingTime = mTime;
+            nParking++;
+            nWaiting--;
+            break;
+        }
+    }
+
+    return ans;
 }
