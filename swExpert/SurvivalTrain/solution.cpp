@@ -1,55 +1,49 @@
-#include <string>
-#include <vector>
 #include <queue>
+#include <vector>
 
-#define MAX_PASSENGERS 100000
-#define MAX_JOB 1000
+#define MAXPASSENGERS 100000
+#define MAXCAR 10
+#define MAXJOB 1000
 
-class Node
-{
-    public:
-        int data;
-        Node* next;
-    
-    Node(int a)
-    {
-        data = a;
-    }
+using namespace std;
+
+class Passengers {
+public:
+    int point;
+    int job;
+    int car;
+    int version;
 };
 
-Node* idByJob[1000];
-
-void appendNode(int key, Node* node)
-{
-    if (idByJob[key] == NULL)
-    {
-        idByJob[key] = node;
-    }
-    else
-    {
-        node->next = idByJob[key];
-        idByJob[key] = node;
-    }
-}
-
-int passengers[MAX_PASSENGERS][3];
-int nCar;
-int total;
-
+int totalPassenger, totalCar;
+Passengers passengers[MAXPASSENGERS];
+priority_queue< vector<int> > maxQueue[MAXCAR];
+priority_queue< vector<int> > minQueue[MAXCAR];
+vector< vector<int> > hashJob(MAXJOB);
 
 void init(int N, int M, int J, int mPoint[], int mJobID[])
 {
-    total = N;
-    nCar = N / M;
-    for (int i=0; i < N; i++)
-    {
-        int car = i / M;
-        Node* node = new Node(i);
-        appendNode(mJobID[i], node);
+    for (int i = 0; i < J; i++) {
+        hashJob[i].clear();
+    }
 
-        passengers[i][0] = mPoint[i];
-        passengers[i][1] = car;
-        passengers[i][2] = mJobID[i];
+    totalPassenger = N;
+    totalCar = N / M;
+
+    for (int i = 0; i < totalCar; i++) {
+        maxQueue[i] = priority_queue< vector<int> >();
+        minQueue[i] = priority_queue< vector<int> >();
+    }
+
+    for (int i = 0; i < N; i++) {
+        passengers[i].point = mPoint[i];
+        passengers[i].job = mJobID[i];
+        passengers[i].car = i / M;
+        passengers[i].version = 0;
+        hashJob[mJobID[i]].push_back(i);
+
+        maxQueue[i / M].push( { mPoint[i], -i, 0 });
+        minQueue[i / M].push({ -mPoint[i], i, 0 });
     }
 }
 
@@ -59,35 +53,90 @@ void destroy()
 
 int update(int mID, int mPoint)
 {
-    passengers[mID][0] += mPoint;
-    return passengers[mID][0];
+    passengers[mID].point += mPoint;
+    passengers[mID].version++;
+
+    int car = passengers[mID].car;
+    maxQueue[car].push({ passengers[mID].point, -mID, passengers[mID].version });
+    minQueue[car].push({ -passengers[mID].point, mID, passengers[mID].version });
+
+    return passengers[mID].point;
 }
 
 int updateByJob(int mJobID, int mPoint)
 {
     int ans = 0;
+    for (int idx : hashJob[mJobID]) {
+        passengers[idx].point += mPoint;
+        ans += passengers[idx].point;
 
-    Node* node = idByJob[mJobID];
-    while (node)
-    {
-        int mID = node->data;
-        passengers[mID][0] += mPoint;
-        ans += passengers[mID][0];
-
-        node = node->next;
+        passengers[idx].version++;
+        int car = passengers[idx].car;
+        maxQueue[car].push({ passengers[idx].point, -idx, passengers[idx].version });
+        minQueue[car].push({ -passengers[idx].point, idx, passengers[idx].version });
     }
     return ans;
 }
 
 int move(int mNum)
 {
-    std::priority_queue<std::pair<int, int> > maxHeap[nCar];
-    std::priority_queue<std::pair<int, int> > minHeap[nCar];
-    for (int i=0; i < total; i++)
-    {
-        maxHeap[passengers[i][1]].push(std::make_pair(passengers[i][0], i));
-        minHeap[passengers[i][1]].push(std::make_pair(passengers[i][0], i));
+    int ans = 0;
+    vector< vector< vector<int> > > maxTemp(totalCar);
+    vector< vector< vector<int> > > minTemp(totalCar);
+
+    for (int car = 0; car < totalCar; car++) {
+        if (car > 0) {
+            int k = 0;
+            vector<int> curr;
+            while (k < mNum) {
+                curr = maxQueue[car].top();
+                maxQueue[car].pop();
+                int mID = -curr[1];
+                int version = curr[2];
+
+                if (passengers[mID].version == version && passengers[mID].car == car) {
+                    ans += passengers[mID].point;
+                    passengers[mID].car = car - 1;
+                    passengers[mID].version++;
+
+                    maxTemp[car - 1].push_back({ passengers[mID].point, -mID, passengers[mID].version });
+                    minTemp[car - 1].push_back({ -passengers[mID].point, mID, passengers[mID].version });
+
+                    k++;
+                }
+            }
+        }
+        if (car < totalCar - 1) {
+            int k = 0;
+            vector<int> curr;
+            while (k < mNum) {
+                curr = minQueue[car].top();
+                minQueue[car].pop();
+                int mID = curr[1];
+                int version = curr[2];
+
+                if (passengers[mID].version == version && passengers[mID].car == car) {
+                    ans += passengers[mID].point;
+                    passengers[mID].car = car + 1;
+                    passengers[mID].version++;
+
+                    maxTemp[car + 1].push_back({ passengers[mID].point, -mID, passengers[mID].version });
+                    minTemp[car + 1].push_back({ -passengers[mID].point, mID, passengers[mID].version });
+
+                    k++;
+                }
+            }
+        }
     }
 
-    return -3;
+    for (int car = 0; car < totalCar; car++) {
+        for (auto data : maxTemp[car]) {
+            maxQueue[car].push(data);
+        }
+        for (auto data : minTemp[car]) {
+            minQueue[car].push(data);
+        }
+    }
+
+    return ans;
 }
