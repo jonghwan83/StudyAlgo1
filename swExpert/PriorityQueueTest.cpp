@@ -2,6 +2,7 @@
 #include <vector>
 #include <algorithm>
 #include <time.h>
+#include <iostream>
 
 #define MAXSIZE 5000000
 
@@ -35,14 +36,12 @@ public:
     }
 };
 
+priority_queue<int> pq;
+vector<int> vec;
 Heap heap;
 
 int main() {
     clock_t start, end;
-
-
-    priority_queue<int> pq;
-    vector<int> vec;
 
     start = clock();
     for (int i = 0; i < MAXSIZE; i++) {
