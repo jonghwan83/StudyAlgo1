@@ -1,4 +1,3 @@
-#include <queue>
 #include <vector>
 
 #define MAXPASSENGERS 100000
@@ -17,9 +16,128 @@ public:
 
 int totalPassenger, totalCar;
 Passengers passengers[MAXPASSENGERS];
-priority_queue< vector<int> > maxQueue[MAXCAR];
-priority_queue< vector<int> > minQueue[MAXCAR];
 vector< vector<int> > hashJob(MAXJOB);
+
+class Data {
+public:
+    int point;
+    int id;
+    Data() {}
+    Data(int p, int i) {
+        point = p;
+        id = i;
+    }
+};
+
+
+class Heap {
+public:
+    Data arr[MAXPASSENGERS];
+    int length;
+    bool isMinHeap;
+
+    Heap() {
+        length = 0;
+        isMinHeap = false;
+    }
+
+    void init(bool isMin) {
+        length = 0;
+        isMinHeap = isMin;
+    }
+
+    bool compare(int parent, int child) {
+        if (isMinHeap) {
+            if (arr[parent].point > arr[child].point) { return true; }
+            if (arr[parent].point == arr[child].point && arr[parent].id < arr[child].id) { return true; }
+            return false;
+        }
+        else {
+            if (arr[parent].point < arr[child].point) { return true; }
+            if (arr[parent].point == arr[child].point && arr[parent].id > arr[child].id) { return true; }
+            return false;
+        }
+    }
+
+    void push(int point, int id) {
+        Data last = Data(point, id);
+        arr[length] = last;
+        int idx = length;
+
+        Data temp;
+        while (idx > 0 && compare((idx - 1) / 2, idx)) {
+            temp = arr[(idx - 1) / 2];
+            arr[(idx - 1) / 2] = arr[idx];
+            arr[idx] = temp;
+            idx = (idx - 1) / 2;
+        }
+        length++;
+    }
+
+    Data pop() {
+        Data ans = arr[0];
+
+        length--;
+        arr[0] = arr[length];
+
+        int idx = 0;
+        int left, right;
+        Data temp;
+        while (idx < length) {
+            left = idx * 2 + 1;
+            right = idx * 2 + 2;
+
+            if (left >= length && right >= length) {
+                break;
+            }
+
+            if (isMinHeap) {
+                if (right < length &&
+                (arr[left].point > arr[right].point ||
+                (arr[left].point == arr[right].point && arr[left].id < arr[right].id))) {
+                    if (compare(idx, right)) {
+                        temp = arr[right];
+                        arr[right] = arr[idx];
+                        arr[idx] = temp;
+                        idx = right;
+                    } else { break; }
+                }
+                else {
+                    if (compare(idx, left)) {
+                        temp = arr[left];
+                        arr[left] = arr[idx];
+                        arr[idx] = temp;
+                        idx = left;
+                    } else { break; }
+                }
+            }
+            else {
+                if (right < length &&
+                (arr[left].point < arr[right].point ||
+                arr[left].point == arr[right].point && arr[left].id > arr[right].id)) {
+                    if (compare(idx, right)) {
+                        temp = arr[right];
+                        arr[right]  = arr[idx];
+                        arr[idx] = temp;
+                        idx = right;
+                    } else { break; }
+                }
+                else {
+                    if (compare(idx, left)) {
+                        temp = arr[left];
+                        arr[left] = arr[idx];
+                        arr[idx] = temp;
+                        idx = left;
+                    } else { break; }
+                }
+            }
+        }
+        return ans;
+    }
+};
+
+Heap minheap[MAXCAR];
+Heap maxheap[MAXCAR];
 
 void init(int N, int M, int J, int mPoint[], int mJobID[])
 {
@@ -31,8 +149,8 @@ void init(int N, int M, int J, int mPoint[], int mJobID[])
     totalCar = N / M;
 
     for (int i = 0; i < totalCar; i++) {
-        maxQueue[i] = priority_queue< vector<int> >();
-        minQueue[i] = priority_queue< vector<int> >();
+        minheap[i].init(true);
+        maxheap[i].init(false);
     }
 
     for (int i = 0; i < N; i++) {
@@ -42,8 +160,8 @@ void init(int N, int M, int J, int mPoint[], int mJobID[])
         passengers[i].version = 0;
         hashJob[mJobID[i]].push_back(i);
 
-        maxQueue[i / M].push( { mPoint[i], -i, 0 });
-        minQueue[i / M].push({ -mPoint[i], i, 0 });
+        minheap[i / M].push(mPoint[i], i);
+        maxheap[i / M].push(mPoint[i], i);
     }
 }
 
@@ -57,8 +175,8 @@ int update(int mID, int mPoint)
     passengers[mID].version++;
 
     int car = passengers[mID].car;
-    maxQueue[car].push({ passengers[mID].point, -mID, passengers[mID].version });
-    minQueue[car].push({ -passengers[mID].point, mID, passengers[mID].version });
+    minheap[car].push(passengers[mID].point, mID);
+    maxheap[car].push(passengers[mID].point, mID);
 
     return passengers[mID].point;
 }
@@ -72,8 +190,8 @@ int updateByJob(int mJobID, int mPoint)
 
         passengers[idx].version++;
         int car = passengers[idx].car;
-        maxQueue[car].push({ passengers[idx].point, -idx, passengers[idx].version });
-        minQueue[car].push({ -passengers[idx].point, idx, passengers[idx].version });
+        minheap[car].push(passengers[idx].point, idx);
+        maxheap[car].push(passengers[idx].point, idx);
     }
     return ans;
 }
@@ -87,20 +205,17 @@ int move(int mNum)
     for (int car = 0; car < totalCar; car++) {
         if (car > 0) {
             int k = 0;
-            vector<int> curr;
+            Data curr;
             while (k < mNum) {
-                curr = maxQueue[car].top();
-                maxQueue[car].pop();
-                int mID = -curr[1];
-                int version = curr[2];
+                curr = maxheap[car].pop();
+                int mID = curr.id;
 
-                if (passengers[mID].version == version && passengers[mID].car == car) {
+                if (passengers[mID].point == curr.point && passengers[mID].car == car) {
                     ans += passengers[mID].point;
                     passengers[mID].car = car - 1;
-                    passengers[mID].version++;
 
-                    maxTemp[car - 1].push_back({ passengers[mID].point, -mID, passengers[mID].version });
-                    minTemp[car - 1].push_back({ -passengers[mID].point, mID, passengers[mID].version });
+                    maxTemp[car - 1].push_back({ passengers[mID].point, mID });
+                    minTemp[car - 1].push_back({ passengers[mID].point, mID });
 
                     k++;
                 }
@@ -108,20 +223,17 @@ int move(int mNum)
         }
         if (car < totalCar - 1) {
             int k = 0;
-            vector<int> curr;
+            Data curr;
             while (k < mNum) {
-                curr = minQueue[car].top();
-                minQueue[car].pop();
-                int mID = curr[1];
-                int version = curr[2];
+                curr = minheap[car].pop();
+                int mID = curr.id;
 
-                if (passengers[mID].version == version && passengers[mID].car == car) {
+                if (passengers[mID].point == curr.point && passengers[mID].car == car) {
                     ans += passengers[mID].point;
                     passengers[mID].car = car + 1;
-                    passengers[mID].version++;
 
-                    maxTemp[car + 1].push_back({ passengers[mID].point, -mID, passengers[mID].version });
-                    minTemp[car + 1].push_back({ -passengers[mID].point, mID, passengers[mID].version });
+                    minTemp[car + 1].push_back({ passengers[mID].point, mID });
+                    maxTemp[car + 1].push_back({ passengers[mID].point, mID });
 
                     k++;
                 }
@@ -130,11 +242,11 @@ int move(int mNum)
     }
 
     for (int car = 0; car < totalCar; car++) {
-        for (auto data : maxTemp[car]) {
-            maxQueue[car].push(data);
+        for (auto info : maxTemp[car]) {
+            maxheap[car].push(info[0], info[1]);
         }
-        for (auto data : minTemp[car]) {
-            minQueue[car].push(data);
+        for (auto info : minTemp[car]) {
+            minheap[car].push(info[0], info[1]);
         }
     }
 
