@@ -11,7 +11,6 @@ public:
     int point;
     int job;
     int car;
-    int version;
 };
 
 int totalPassenger, totalCar;
@@ -157,7 +156,6 @@ void init(int N, int M, int J, int mPoint[], int mJobID[])
         passengers[i].point = mPoint[i];
         passengers[i].job = mJobID[i];
         passengers[i].car = i / M;
-        passengers[i].version = 0;
         hashJob[mJobID[i]].push_back(i);
 
         minheap[i / M].push(mPoint[i], i);
@@ -172,7 +170,6 @@ void destroy()
 int update(int mID, int mPoint)
 {
     passengers[mID].point += mPoint;
-    passengers[mID].version++;
 
     int car = passengers[mID].car;
     minheap[car].push(passengers[mID].point, mID);
@@ -188,7 +185,6 @@ int updateByJob(int mJobID, int mPoint)
         passengers[idx].point += mPoint;
         ans += passengers[idx].point;
 
-        passengers[idx].version++;
         int car = passengers[idx].car;
         minheap[car].push(passengers[idx].point, idx);
         maxheap[car].push(passengers[idx].point, idx);
