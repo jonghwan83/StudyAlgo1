@@ -82,6 +82,7 @@ public:
             int right = 2 * idx + 2;
             if (right < length) {
                 if (arr[right].value < arr[left].value) { child = right; }
+                else if (arr[right].value == arr[left].value && arr[right].id < arr[left].id) { child = right; }
                 else { child = left; }
             }
             else { child = left; }
@@ -109,27 +110,35 @@ public:
     }
 };
 
-unordered_map<string, int> hashHalfTime;
-unordered_map<string, idxList> hashRepoIdx;
+unordered_map<string, int[2]> hashBacteria;
 int bIdx, now;
 Repository repo[MAXBACTERIA];
 Heap nextHalfTime, minLife;
 
 
 void updateTime(int tStamp) {
-    while (now <= tStamp) {
+    while (now < tStamp) {
+        now++;
         while (now == nextHalfTime.arr[0].value && nextHalfTime.length > 0) {
             Data curr = nextHalfTime.pop();
             int idx = curr.id;
 
             repo[idx].life /= 2;
-            if (repo[idx].life < 10) { repo[idx].count = 0; }
+            if (repo[idx].life < 10) { 
+                hashBacteria[repo[idx].name][1] -= repo[idx].count;
+                repo[idx].count = 0; 
+            }
             else if (repo[idx].count > 0) {
-                nextHalfTime.push(now + hashHalfTime[repo[idx].name], idx);
+                nextHalfTime.push(now + hashBacteria[repo[idx].name][0], idx);
                 minLife.push(repo[idx].life, idx);
             }
         }
-        now++;
+        if (nextHalfTime.length > 0 && nextHalfTime.arr[0].value <= tStamp) {
+            now = nextHalfTime.arr[0].value - 1;
+        }
+        else {
+            now = tStamp;
+        }
     }
 }
 
@@ -137,11 +146,11 @@ void init(int N, char bNameList[MAX_BCNT][MAX_NAME], int mHalfTime[MAX_BCNT])
 {
     now = 0;
     bIdx = 0;
-    hashHalfTime.clear();
-    hashRepoIdx.clear();
+    hashBacteria.clear();
 
     for (int i = 0; i < N; i++) {
-        hashHalfTime[bNameList[i]] = mHalfTime[i];
+        hashBacteria[bNameList[i]][0] = mHalfTime[i];
+        hashBacteria[bNameList[i]][1] = 0;
     }
 
     nextHalfTime.init();
@@ -151,14 +160,16 @@ void init(int N, char bNameList[MAX_BCNT][MAX_NAME], int mHalfTime[MAX_BCNT])
 void addBacteria(int tStamp, char bName[MAX_NAME], int mLife, int mCnt)
 {
     updateTime(tStamp);
+
     repo[bIdx].name = bName;
     repo[bIdx].life = mLife;
     repo[bIdx].storedTime = tStamp;
     repo[bIdx].count = mCnt;
 
-    nextHalfTime.push(tStamp + hashHalfTime[bName], bIdx);
+    hashBacteria[bName][1] += mCnt;
+
+    nextHalfTime.push(tStamp + hashBacteria[bName][0], bIdx);
     minLife.push(mLife, bIdx);
-    hashRepoIdx[bName].addIdx(bIdx);
 
     bIdx++;
 }
@@ -166,6 +177,7 @@ void addBacteria(int tStamp, char bName[MAX_NAME], int mLife, int mCnt)
 int takeOut(int tStamp, int mCnt)
 {
     updateTime(tStamp);
+
     int ans = 0;
     int k = 0;
     while (k < mCnt) {
@@ -175,17 +187,18 @@ int takeOut(int tStamp, int mCnt)
         }
         if (repo[minLife.arr[0].id].count > mCnt - k) {
             repo[minLife.arr[0].id].count -= (mCnt - k);
-            ans += minLife.arr[0].value * (mCnt- k);
+            hashBacteria[repo[minLife.arr[0].id].name][1] -= (mCnt - k);
+            ans += minLife.arr[0].value * (mCnt - k);
             k += (mCnt - k);
         }
         else {
             ans += minLife.arr[0].value * repo[minLife.arr[0].id].count;
+            hashBacteria[repo[minLife.arr[0].id].name][1] -= repo[minLife.arr[0].id].count;
             k += repo[minLife.arr[0].id].count;
             repo[minLife.arr[0].id].count = 0;
             minLife.pop();
         }
     }
-
     return ans;
 }
 
@@ -193,11 +206,5 @@ int checkBacteria(int tStamp, char bName[MAX_NAME])
 {
     updateTime(tStamp);
 
-    int ans = 0;
-    for (int i = 0; i < hashRepoIdx[bName].idx; i++) {
-        int idx = hashRepoIdx[bName].arr[i];
-        ans += repo[idx].count;
-    }
-
-    return ans;
+    return hashBacteria[bName][1];
 }
