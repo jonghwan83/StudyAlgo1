@@ -3,6 +3,7 @@
 #endif
 
 #include <stdio.h>
+#include <time.h>
 
 extern void init();
 extern int buy(int bId, int mProduct, int mPrice, int mQuantity);
@@ -66,6 +67,9 @@ static bool run() {
 }
 
 int main() {
+    clock_t start, end;
+    start = clock();
+
     setbuf(stdout, NULL);
     freopen("sample_input.txt", "r", stdin);
 
@@ -75,11 +79,10 @@ int main() {
     for (int tc = 1; tc <= T; tc++) {
         int score = run() ? MARK : 0;
         printf("#%d %d\n", tc, score);
-
-        if (tc == 1) { 
-            break;
-        }
     }
+
+    end = clock() - start;
+    printf("elapsed: %f\n", (float) end / CLOCKS_PER_SEC);
 
     return 0;
 }
