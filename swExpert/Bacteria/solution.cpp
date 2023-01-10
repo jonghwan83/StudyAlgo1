@@ -100,7 +100,7 @@ public:
 };
 
 unordered_map<string, int[2]> hashBacteria;
-int bIdx, now;
+int bIdx;
 Repository repo[MAXBACTERIA];
 Heap nextHalfTime, minLife;
 
