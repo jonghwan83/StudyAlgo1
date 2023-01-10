@@ -82,8 +82,7 @@ public:
             int left = 2 * idx + 1;
             int right = 2 * idx + 2;
             if (right < length) {
-                if (arr[right].value < arr[left].value) { child = right; }
-                else if (arr[right].value == arr[left].value && arr[right].id < arr[left].id) { child = right; }
+                if (compare(left, right)) { child = right; }
                 else { child = left; }
             }
             else { child = left; }
