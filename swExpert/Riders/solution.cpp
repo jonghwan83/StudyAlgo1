@@ -1,10 +1,6 @@
-#include <deque>
-
 #define MAXRIDER 2000
 #define MAXCUSTOMER 500
-#define MAXORDER 30000
-
-using namespace std;
+#define MAXORDER 20000
 
 class Data {
 public:
@@ -12,8 +8,8 @@ public:
     int id;
 
     Data() {}
-    Data(int d, int i) {
-        timestamp = d;
+    Data(int t, int i) {
+        timestamp = t;
         id = i;
     }
 };
@@ -33,8 +29,8 @@ public:
         return false;
     }
 
-    void push(int d, int i) {
-        Data last = Data(d, i);
+    void push(int t, int i) {
+        Data last = Data(t, i);
         arr[length] = last;
         int idx = length;
 
@@ -80,7 +76,6 @@ class Rider {
 public:
     int status;
     int targetId;
-    int employee;
     int x;
     int y;
 };
@@ -91,48 +86,69 @@ public:
     int y;
 };
 
-int now;
 Rider riders[MAXRIDER];
 Customer customers[MAXCUSTOMER];
-deque<int> employees;
+int employees, now;
 Heap nearRiders;
 Heap nextTimestamp;
 Heap waitingOrder;
 
-void updateTime(int mTimeStamp) {
-    while (nextTimestamp.arr[0].timestamp <= mTimeStamp && nextTimestamp.length > 0) {
+void checkDelivery() {
+    while (nextTimestamp.length > 0 && nextTimestamp.arr[0].timestamp <= now) {
         Data curr = nextTimestamp.pop();
         if (riders[curr.id].status == 1) {
-            int goal = riders[curr.id].targetId;
-            riders[curr.id].x = customers[goal].x;
-            riders[curr.id].y = customers[goal].y;
+            int target = riders[curr.id].targetId;
             riders[curr.id].status = 2;
+            riders[curr.id].x = customers[target].x;
+            riders[curr.id].y = customers[target].y;
 
-            employees.push_back(riders[curr.id].employee);
-
-            nextTimestamp.push(curr.timestamp + riders[curr.id].x + riders[curr.id].y, curr.id);
+            nextTimestamp.push(curr.timestamp + customers[target].x + customers[target].y, curr.id);
+            employees++;
         }
         else if (riders[curr.id].status == 2) {
             riders[curr.id].status = 0;
+            riders[curr.id].targetId = -1;
             nearRiders.push(riders[curr.id].x + riders[curr.id].y, curr.id);
-
-            if (waitingOrder.length > 0 && employees.size() > 0) {
-                Data order = waitingOrder.pop();
-                Data rider = nearRiders.pop();
-
-                nextTimestamp.push(curr.timestamp + riders[rider.id].x + riders[rider.id].y, rider.id);
-                riders[rider.id].status = 1;
-                riders[rider.id].targetId = order.id;
-
-                riders[rider.id].employee = employees.front();
-                employees.pop_front();
-                riders[rider.id].x = 0;
-                riders[rider.id].y = 0;
-            }
         }
     }
+}
 
-    now = mTimeStamp;
+void assignDelivery() {
+    while (waitingOrder.arr[0].timestamp <= now && waitingOrder.length > 0 && employees > 0 && nearRiders.length > 0) {
+        Data order = waitingOrder.pop();
+        Data rider = nearRiders.pop();
+
+        riders[rider.id].status = 1;
+        riders[rider.id].targetId = order.id;
+        riders[rider.id].x = 0;
+        riders[rider.id].y = 0;
+
+        employees--;
+        nextTimestamp.push(now + rider.timestamp, rider.id);
+    }
+}
+
+int min(int a, int b) {
+    if (a < b) { return  a; }
+    else { return b; }
+}
+
+void updateTime(int mTimeStamp) {
+    while (now < mTimeStamp) {
+        now++;
+        checkDelivery();
+        assignDelivery();
+
+        int t = 40000001;
+        if (now < waitingOrder.arr[0].timestamp && waitingOrder.length > 0) {
+            t = min(waitingOrder.arr[0].timestamp, t);
+        }
+        if (now < nextTimestamp.arr[0].timestamp && nextTimestamp.length > 0) {
+            t = min(nextTimestamp.arr[0].timestamp, t);
+        }
+        if (t > mTimeStamp) { now = mTimeStamp; }
+        else { now = t - 1; }
+    }
 }
 
 void init(int N, int U, int uX[], int uY[], int R, int rX[], int rY[]) {
@@ -142,8 +158,7 @@ void init(int N, int U, int uX[], int uY[], int R, int rX[], int rY[]) {
     waitingOrder.init();
     nextTimestamp.init();
 
-    employees.clear();
-
+    employees = N;
     for (int i = 0; i < R; i++) {
         riders[i].status = 0;
         riders[i].targetId = -1;
@@ -156,31 +171,16 @@ void init(int N, int U, int uX[], int uY[], int R, int rX[], int rY[]) {
         customers[i].x = uX[i];
         customers[i].y = uY[i];
     }
-
-    for (int i = 0; i < N; i++) {
-        employees.push_back(i);
-    }
 }
 
 int order(int mTimeStamp, int uID) {
-    updateTime(mTimeStamp);
+    updateTime(mTimeStamp - 1);
+    now++;
+    waitingOrder.push(mTimeStamp, uID);
+    checkDelivery();
+    assignDelivery();
 
-    if (nearRiders.length < 1 || employees.empty()) {
-        waitingOrder.push(mTimeStamp, uID);
-        return employees.size();
-    }
-    Data rider = nearRiders.pop();
-    nextTimestamp.push(mTimeStamp + rider.timestamp, rider.id);
-    riders[rider.id].status = 1;
-    riders[rider.id].targetId = uID;
-
-    riders[rider.id].employee = employees.front();
-    employees.pop_front();
-    riders[rider.id].x = 0;
-    riders[rider.id].y = 0;
-
-    return employees.size();
-
+    return employees;
 }
 
 int checkWaitingRiders(int mTimeStamp) {
