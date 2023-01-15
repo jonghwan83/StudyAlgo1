@@ -106,11 +106,9 @@ void dfsDrop(int mTarget, int mRow, int mCol) {
             if (bacterias[dr][dc] == 0 && !visited[dr][dc]) {
                 Data d = Data(grid[dr][dc], dr, dc);
                 pQueue.push(d);
-                visited[dr][dc];
             }
             else if (bacterias[dr][dc] == mTarget && !visited[dr][dc]) {
                 dfsDrop(mTarget, dr, dc);
-                visited[dr][dc];
             }
         }
     }
