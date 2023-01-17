@@ -1,141 +1,205 @@
-#include <vector>
-#include <algorithm>
-#include <set>
-#include <unordered_set>
+#include <cmath>
 #include <unordered_map>
-#include <string>
+
+#define MAXFIND 1000
+#define MAXROOM 100
+#define MAXHOTEL 1001
+#define MAXHEAP 600
+#define MAXREGION 11
+#define MAXBEDS 11
+#define MAXTYPE 5
+#define MAXVIEW 5
 
 using namespace std;
 
-unordered_map<string, vector<vector<int> > > hotelPrice;
-unordered_map<int, unordered_set<string> > priceIdx;
-unordered_map<string, set<vector<int> > > reserved;
+class Data {
+public:
+	int price;
+	int roomID;
+	int hotelID;
 
-void init(int N, int mRoomCnt[])
-{
-	hotelPrice.clear();
-	priceIdx.clear();
-	reserved.clear();
+	Data() {
+		price = 0;
+		roomID = 0;
+		hotelID = 0;
+	}
+};
+
+class Heap {
+public:
+	Data arr[MAXHEAP * MAXROOM];
+	int length;
+
+	void init() { length = 0; }
+
+	bool compare(int parent, int child) {
+		if (arr[parent].price > arr[child].price) { return true; }
+		if (arr[parent].price == arr[child].price && arr[parent].roomID > arr[child].roomID) { return true; }
+		return false;
+	}
+
+	void push(int price, int roomID, int hotelID) {
+		Data last = Data();
+		last.price = price; last.roomID = roomID; last.hotelID = hotelID;
+
+		arr[length] = last;
+		int idx = length;
+
+		while ((idx - 1) / 2 >= 0 && compare((idx - 1) / 2, idx)) {
+			Data temp = arr[idx];
+			arr[idx] = arr[(idx - 1) / 2];
+			arr[(idx - 1) / 2] = temp;
+			idx = (idx - 1) / 2;
+		}
+		length++;
+	}
+
+	Data pop() {
+		Data ans = arr[0];
+		length--;
+		arr[0] = arr[length];
+
+		int idx = 0;
+		int left, right, child;
+		while (2 * idx + 1 < length) {
+			left = 2 * idx + 1;
+			right = 2 * idx + 2;
+
+			if (right < length) {
+				if (compare(left, right)) { child = right; }
+				else { child = left; }
+			}
+			else { child = left; }
+
+			if (compare(idx, child)) {
+				Data temp = arr[idx];
+				arr[idx] = arr[child];
+				arr[child] = temp;
+				idx = child;
+			}
+			else { break; }
+		}
+		return ans;
+	}
+};
+
+class Hotel {
+public:
+	int length;
+	unordered_map<int, int> hashRoomID;
+	int RoomID[MAXROOM];
+	int price[MAXROOM];
+	int region[MAXROOM];
+	int beds[MAXROOM];
+	int roomType[MAXROOM];
+	int viewType[MAXROOM];
+	int cIdx[MAXROOM];
+	int checkIn[MAXROOM][MAXFIND];
+	int checkOut[MAXROOM][MAXFIND];
+};
+
+Hotel hotels[MAXHOTEL];
+Heap minPrice[MAXREGION][MAXBEDS][MAXTYPE][MAXVIEW];
+
+
+bool checkOverlap(int a1, int a2, int b1, int b2) {
+	int first = max(a1, b1);
+	int last = min(a2, b2);
+	return first <= last;
+}
+
+void init(int N, int mRoomCnt[]) {
+	for (int i = 0; i < N + 1; i++) {
+		hotels[i].length = 0;
+		hotels[i].hashRoomID.clear();
+		for (int k = 0; k < MAXFIND; k++) {
+			hotels[i].cIdx[k] = 0;
+		}
+	}
+
+	for (int i = 0; i < MAXREGION; i++) {
+		for (int j = 0; j < MAXBEDS; j++) {
+			for (int k = 0; k < MAXTYPE; k++) {
+				for (int l = 0; l < MAXVIEW; l++) {
+					minPrice[i][j][k][l].init();
+				}
+			}
+		}
+	}
 }
 
 void addRoom(int mHotelID, int mRoomID, int mRoomInfo[])
 {
-	string keyStr;
-	for (int i = 0; i < 4; i++)
-	{
-		keyStr += to_string(mRoomInfo[i]);
-	}
+	int idx = hotels[mHotelID].length;
+	hotels[mHotelID].RoomID[idx] = mRoomID;
+	hotels[mHotelID].region[idx] = mRoomInfo[0];
+	hotels[mHotelID].beds[idx] = mRoomInfo[1];
+	hotels[mHotelID].roomType[idx] = mRoomInfo[2];
+	hotels[mHotelID].viewType[idx] = mRoomInfo[3];
+	hotels[mHotelID].price[idx] = mRoomInfo[4];
+	hotels[mHotelID].hashRoomID[mRoomID] = idx;
 
-	int price = mRoomInfo[4];
+	minPrice[mRoomInfo[0]][mRoomInfo[1]][mRoomInfo[2]][mRoomInfo[3]].push(mRoomInfo[4], mRoomID, mHotelID);
 
-	int temp[] = { -price, -mRoomID, mHotelID };
-	vector<int> valueVec(temp, temp+3);
-
-	hotelPrice[keyStr].push_back(valueVec);
-	push_heap(hotelPrice[keyStr].begin(), hotelPrice[keyStr].end());
-
-	priceIdx[mHotelID].insert(keyStr);
-
-	return;
+	hotels[mHotelID].length++;
 }
 
 int findRoom(int mFilter[])
 {
-	int count;
+	int region = mFilter[2];
+	int bed = mFilter[3];
+	int roomType = mFilter[4];
+	int viewType = mFilter[5];
+
 	int ans = -1;
 
-	int checkIn = mFilter[0];
-	int checkOut = mFilter[1];
-	string priceKey;
-	for (int i = 2; i < 6; i++)
-	{
-		priceKey += to_string(mFilter[i]);
-	}
-	
-	bool isComplete = false;
+	Data arr[MAXHEAP];
+	int arrIdx = 0;
 
-	vector<vector<int> > tempVec;
-	while (hotelPrice[priceKey].size() > 0)
-	{
-		if (isComplete)
-		{
-			break;
+	while (minPrice[region][bed][roomType][viewType].length > 0 && ans == -1) {
+		Data curr = minPrice[region][bed][roomType][viewType].pop();
+
+		int idx = hotels[curr.hotelID].hashRoomID[curr.roomID];
+		if (curr.price != hotels[curr.hotelID].price[idx]) { continue; }
+
+		arr[arrIdx].price = curr.price;
+		arr[arrIdx].hotelID = curr.hotelID;
+		arr[arrIdx].roomID = curr.roomID;
+		arrIdx++;
+
+		bool isOverlap = false;
+		for (int i = 0; i < hotels[curr.hotelID].cIdx[idx]; i++) {
+			if (checkOverlap(mFilter[0], mFilter[1] - 1,
+				hotels[curr.hotelID].checkIn[idx][i], hotels[curr.hotelID].checkOut[idx][i])) {
+				isOverlap = true;
+			}
 		}
-		int price = -hotelPrice[priceKey].front()[0];
-		int roomID = -hotelPrice[priceKey].front()[1];
-		int hotelID = hotelPrice[priceKey].front()[2];
-
-		int pushed[] = { -price, -roomID, hotelID };
-		vector<int> pushedVec(pushed, pushed + 3);
-		tempVec.push_back(pushedVec);
-
-		pop_heap(hotelPrice[priceKey].begin(), hotelPrice[priceKey].end());
-		hotelPrice[priceKey].pop_back();
-
-		string reservedKey;
-		reservedKey += to_string(hotelID);
-		reservedKey += to_string(roomID);
-
-		count = 0;
-		set<vector<int> >::iterator itr;
-		for (itr = reserved[reservedKey].begin(); itr != reserved[reservedKey].end(); itr++)
-		{
-			vector<int> myVec = *itr;
-			int reservedIn = myVec[0];
-			int reservedOut = myVec[1];
-
-			if ((reservedIn <= checkIn) && (checkIn < reservedOut)) { break; }
-			else if ((reservedIn < checkOut) && (checkOut <= reservedOut)) { break; }
-			else if ((checkIn < reservedIn) && (checkOut > reservedOut)) { break; }
-			else { count++; }
-		}
-		if (count == reserved[reservedKey].size())
-		{
-			int checkInOut[] = { checkIn, checkOut };
-			vector<int> checkInOutVec(checkInOut, checkInOut + 2);
-			reserved[reservedKey].insert(checkInOutVec);
-			ans = roomID;
-			isComplete = true;
-			break;
+		if (!isOverlap) {
+			ans = curr.roomID;
+			int cIdx = hotels[curr.hotelID].cIdx[idx];
+			hotels[curr.hotelID].checkIn[idx][cIdx] = mFilter[0];
+			hotels[curr.hotelID].checkOut[idx][cIdx] = mFilter[1] - 1;
+			hotels[curr.hotelID].cIdx[idx]++;
 		}
 	}
 
-	while (tempVec.size() > 0)
-	{
-		hotelPrice[priceKey].push_back(tempVec.back());
-		push_heap(hotelPrice[priceKey].begin(), hotelPrice[priceKey].end());
-		tempVec.pop_back();
+	for (int i = 0; i < arrIdx; i++) {
+		minPrice[region][bed][roomType][viewType].push(arr[i].price, arr[i].roomID, arr[i].hotelID);
 	}
+
 
 	return ans;
 }
 
 int riseCosts(int mHotelID)
 {
-	string keyStr;
 	int ans = 0;
-	bool isChanged = false;
-
-	unordered_set<string>::iterator itr;
-	for (itr = priceIdx[mHotelID].begin(); itr != priceIdx[mHotelID].end(); itr++)
-	{
-		keyStr = *itr;
-		for (int j=0; j < hotelPrice[keyStr].size(); j++)
-		{
-			if (hotelPrice[keyStr][j][2] == mHotelID)
-			{
-				hotelPrice[keyStr][j][0] *= 1.1;
-				ans += hotelPrice[keyStr][j][0];
-				isChanged = true;
-			}
-		}
-
-		if (isChanged)
-		{
-			make_heap(hotelPrice[keyStr].begin(), hotelPrice[keyStr].end());
-			isChanged = false;
-		}
+	for (int i = 0; i < hotels[mHotelID].length; i++) {
+		hotels[mHotelID].price[i] *= 1.1;
+		ans += hotels[mHotelID].price[i];
+		minPrice[hotels[mHotelID].region[i]][hotels[mHotelID].beds[i]][hotels[mHotelID].roomType[i]][hotels[mHotelID].viewType[i]].push(
+			hotels[mHotelID].price[i], hotels[mHotelID].RoomID[i], mHotelID
+		);
 	}
-
-	return -ans;
+	return ans;
 }
