@@ -172,6 +172,7 @@ int findRoom(int mFilter[])
 			if (checkOverlap(mFilter[0], mFilter[1] - 1,
 				hotels[curr.hotelID].checkIn[idx][i], hotels[curr.hotelID].checkOut[idx][i])) {
 				isOverlap = true;
+				break;
 			}
 		}
 		if (!isOverlap) {
