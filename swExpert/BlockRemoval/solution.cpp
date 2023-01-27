@@ -1,5 +1,4 @@
 #include <deque>
-#include <deque>
 
 #define MAXDROP 1000
 #define MAXARR 10000
