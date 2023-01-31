@@ -84,7 +84,6 @@ public:
     }
 };
 
-
 int drows[4] = { -1, 0, 1, 0 };
 int dcols[4] = { 0, 1, 0, -1 };
 
