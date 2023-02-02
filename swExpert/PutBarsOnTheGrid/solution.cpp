@@ -105,15 +105,10 @@ void dfs(int row, int col, bool isRemoving) {
             regions[regionMap[row][col]].isExist = false;
             regionCnt--;
         }
-        checkMap[row][col] = checkIdx;
-        regionMap[row][col] = regionIdx;
-        regions[regionIdx].length++;
     }
-    else {
-        checkMap[row][col] = checkIdx;
-        regionMap[row][col] = regionIdx;
-        regions[regionIdx].length++;
-    }
+    checkMap[row][col] = checkIdx;
+    regionMap[row][col] = regionIdx;
+    regions[regionIdx].length++;
     
     int dr, dc;
     for (int i = 0; i < 4; i++) {
