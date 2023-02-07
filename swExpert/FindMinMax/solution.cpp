@@ -2,42 +2,6 @@
 #define MAXROW 200000 / MAXCOL
 #define MAXVAL 100000000
 
-
-class Heap {
-public:
-    int arr[MAXROW * MAXCOL];
-    int length;
-    bool isMaxPriority;
-
-    void init(bool isMaxQueue) {
-        length = 0;
-        isMaxPriority = isMaxQueue;
-    }
-
-    bool compare(int parent, int child) {
-        if (isMaxPriority) {
-            if (arr[parent] < arr[child]) { return true; }
-        }
-        else {
-            if (arr[parent] > arr[child]) { return true; }
-        }
-        return false;
-    }
-
-    void push(int a) {
-        arr[length] = a;
-        int idx = length;
-
-        while ((idx - 1) / 2 >= 0 && compare((idx - 1) / 2, idx)) {
-            int temp = arr[idx];
-            arr[idx] = arr[(idx - 1) / 2];
-            arr[(idx - 1) / 2] = temp;
-            idx = (idx - 1) / 2;
-        }
-        length++;
-    }
-};
-
 class NumArray {
 public:
     int arr[MAXCOL];
@@ -145,9 +109,8 @@ void erase(int mFrom, int mTo)
 }
 int find(int K)
 {
-    Heap minQueue;
-    Heap maxQueue;
-    minQueue.init(false); maxQueue.init(true);
+    int minAns = MAXVAL;
+    int maxAns = -1;
 
     int loc = numArray[idx].count - 1;
     int numIdx = idx;
@@ -158,19 +121,19 @@ int find(int K)
             continue;
         }
         if (K > numArray[numIdx].length) {
-            minQueue.push(numArray[numIdx].minValue);
-            maxQueue.push(numArray[numIdx].maxValue);
+            if (numArray[numIdx].minValue < minAns) { minAns = numArray[numIdx].minValue; }
+            if (numArray[numIdx].maxValue > maxAns) { maxAns = numArray[numIdx].maxValue; }
             K -= numArray[numIdx].length;
             loc = numArray[--numIdx].count - 1;
             continue;
         }
 
         if (numArray[numIdx].isExist[loc]) {
-            minQueue.push(numArray[numIdx].arr[loc]);
-            maxQueue.push(numArray[numIdx].arr[loc]);
+            if (numArray[numIdx].arr[loc] < minAns) { minAns = numArray[numIdx].arr[loc]; }
+            if (numArray[numIdx].arr[loc] > maxAns) { maxAns = numArray[numIdx].arr[loc]; }
             K--;
         }
         loc--;
     }
-    return maxQueue.arr[0] - minQueue.arr[0];
+    return maxAns - minAns;
 }
