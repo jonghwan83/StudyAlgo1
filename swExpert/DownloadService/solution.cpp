@@ -1,213 +1,211 @@
-#define DSIZE 1000001
-#define MAXNODE 50001
+#include <unordered_map>
 
-#include <vector>
-#include <algorithm>
+#define MAXDEVICE 11000
+#define SUBSIZE 1000
 
 using namespace std;
+
+class Heap {
+public:
+    int arr[SUBSIZE];
+    int length;
+
+    void init() { length = 0; }
+    bool compare(int parent, int child) {
+        if (arr[parent] > arr[child]) { return true; }
+        else { return false; }
+    }
+
+    void push(int time) {
+        int last = time;
+        arr[length] = last;
+
+        int idx = length;
+        while ((idx - 1) / 2 >= 0 && compare((idx - 1) / 2, idx)) {
+            int temp = arr[idx];
+            arr[idx] = arr[(idx - 1) / 2];
+            arr[(idx - 1) / 2] = temp;
+            idx = (idx - 1) / 2;
+        }
+        length++;
+    }
+};
+
+class Children {
+public:
+    int arr[SUBSIZE];
+    int length;
+
+    Children() { length = 0; }
+    void push(int a) { arr[length++] = a; }
+};
+
+class Device {
+public:
+    bool isPC;
+    int id;
+    int parent;
+    int isConnected;
+    int time;
+    int capa;
+    int capacity;
+    int nConnect;
+    Children children;
+
+    Device() {
+        isPC = false;
+        id = -1;
+        parent = -1;
+        isConnected = false;
+        time = 0;
+        capa = 0;
+        capacity = 0;
+        nConnect = 0;
+        children = Children();
+    }
+
+    void init(bool pc, int mTime, int mParent, int mID) {
+        isPC = pc;
+        time = mTime;
+        parent = mParent;
+        isConnected = true;
+        id = mID;
+    }
+};
 
 struct Result {
     int finish;
     int param;
 };
 
-class PC {
-public:
-    int id;
-    int capacity;
-    int eTime;
-    bool isComplete;
-    PC() {
-        id = -1;
-        eTime = -1;
-        isComplete = false;
-        capacity = 0;
-    }
-};
+int dIdx, topHub;
+Device devices[MAXDEVICE];
+unordered_map<int, int> hashDevice;
+Heap pQueue;
+int pcList[SUBSIZE];
+int pIdx;
 
-class Clients {
-public:
-    vector<int> children;
-    int cID;
-    int speed;
-    bool isPC;
-    int nConnected;
-    int sTime;
-    Clients() {
-        cID = -1;
-        speed = 0;
-        isPC = false;
-        nConnected = 0;
-        sTime = 0;
-        children.clear();
+void connectHub(int idx) {
+    if (idx == 0 || devices[idx].nConnect > 0) {
+        devices[idx].nConnect++;
+        topHub = idx;
+        return;
     }
-};
-
-vector<PC> downloads(MAXNODE);
-vector<Clients> serverTree(MAXNODE);
-vector<int> idxParent(MAXNODE);
-vector<int> pclist(MAXNODE);
-vector<int> subPCs;
-pair<int, int> firstFinTime;
-int currentTime;
-
-void updateConnection(int hubID) {
-    int parent = idxParent[hubID];
-    if (serverTree[hubID].isPC) { serverTree[parent].nConnected++; }
-    else {
-        if (serverTree[hubID].nConnected == 1) { serverTree[parent].nConnected++; }
-        else { return; }
-    }
-    if (parent == 0) { return; }
-    updateConnection(parent);
+    devices[idx].nConnect++;
+    connectHub(devices[idx].parent);
 }
 
-void cutConnection(int hubID) {
-    int parent = idxParent[hubID];
-    if (serverTree[hubID].isPC) { serverTree[parent].nConnected--; }
-    else {
-        if (serverTree[hubID].nConnected == 0) { serverTree[parent].nConnected--; }
-        else { return; }
-    }
-    if (parent == 0) { return; }
-    cutConnection(parent);
-}
+void divideCapa(int idx) {
+    if (devices[idx].children.length == 0 || devices[idx].nConnect == 0) { return; }
 
-void getFirstFinTime() {
-    firstFinTime = make_pair(DSIZE, -1);
-    int capa, fTime;
-    vector<pair<int, int> > templist;
-    for (int pcID : pclist) {
-        capa = downloads[pcID].capacity - (serverTree[pcID].speed * (currentTime - serverTree[pcID].sTime));
-        if (capa <= 0 && !downloads[pcID].isComplete) {
-            fTime = currentTime + (capa / serverTree[pcID].speed);
-            templist.push_back(make_pair(-fTime, pcID));
-            push_heap(templist.begin(), templist.end());
-        }
-    }
-    if (!templist.empty()) {
-        firstFinTime.first = -templist.front().first;
-        firstFinTime.second = templist.front().second;
+    for (int i = 0; i < devices[idx].children.length; i++) {
+        devices[devices[idx].children.arr[i]].capa = devices[idx].capa / devices[idx].nConnect;
+        divideCapa(devices[idx].children.arr[i]);
     }
 }
 
-void executeDownload(int pcID, int cTime) {
-    downloads[pcID].capacity -= serverTree[pcID].speed * (cTime - serverTree[pcID].sTime);
-    if (downloads[pcID].capacity <= 0) {
-        downloads[pcID].eTime = cTime + (downloads[pcID].capacity / serverTree[pcID].speed);
-        downloads[pcID].isComplete = true;
-        serverTree[pcID].speed = 0;
+void disconnectHub(int idx) {
+    devices[idx].nConnect--;
+    if (idx == 0 || devices[idx].nConnect > 0) {
+        return;
     }
-    serverTree[pcID].sTime = cTime;
+    devices[idx].isConnected = false;
+    disconnectHub(devices[idx].parent);
 }
 
-void updateSpeed(int hubID, int cTime) {
-    for (int child : serverTree[hubID].children) {
-        if (serverTree[child].isPC && !downloads[child].isComplete) {
-            executeDownload(child, cTime);
-            if (downloads[child].isComplete) {
-                cutConnection(child);
-                updateSpeed(0, cTime);
-            }
-            else {
-                serverTree[child].speed = serverTree[hubID].speed / serverTree[hubID].nConnected;
+void updateTime(int mTime) {
+    while (true) {
+        pQueue.init();
+        for (int i = 0; i < pIdx; i++) {
+            int pc = pcList[i];
+            if (devices[pc].isConnected) {
+                int amount = devices[pc].capa * (mTime - devices[pc].time);
+                if (amount >= devices[pc].capacity) {
+                    int expected = (devices[pc].capacity - amount) / devices[pc].capa;
+                    pQueue.push(mTime + expected);
+                }
             }
         }
-        if (serverTree[child].nConnected == 0) { continue; }
-        serverTree[child].speed = serverTree[hubID].speed / serverTree[hubID].nConnected;
-        updateSpeed(child, cTime);
-    }
-}
 
-void updateNet() {
-    getFirstFinTime();
-    while (firstFinTime.first < DSIZE) {
-        executeDownload(firstFinTime.second, firstFinTime.first);
-        cutConnection(firstFinTime.second);
-        updateSpeed(0, firstFinTime.first);
-        getFirstFinTime();
-    }
-}
-
-void checkSubPC(int hubID) {
-    for (int child : serverTree[hubID].children) {
-        if (serverTree[child].isPC && !downloads[child].isComplete) {
-            subPCs.push_back(child);
+        if (pQueue.length > 0) {
+            int t = pQueue.arr[0];
+            for (int i = 0; i < pIdx; i++) {
+                int pc = pcList[i];
+                if (devices[pc].isConnected) {
+                    devices[pc].capacity -= devices[pc].capa * (t - devices[pc].time);
+                    devices[pc].time = t;
+                    if (devices[pc].capacity <= 0) {
+                        devices[pc].isConnected = false;
+                        devices[pc].time = t;
+                        disconnectHub(devices[pc].parent);
+                    }
+                }
+            }
         }
-        checkSubPC(child);
+        else { break; }
+        divideCapa(0);
+    }
+
+    for (int i = 0; i < pIdx; i++) {
+        int pc = pcList[i];
+        if (devices[pc].isConnected) {
+            devices[pc].capacity -= devices[pc].capa * (mTime - devices[pc].time);
+            devices[pc].time = mTime;
+        }
     }
 }
 
-void initVar(int hubID, Clients client, PC pc) {
-    for (int child : serverTree[hubID].children) {
-        initVar(child, client, pc);
-        serverTree[child] = client;
-        downloads[child] = pc;
-    }
-    serverTree[hubID] = client;
-    downloads[hubID] = pc;
-}
+
 
 void init(int mCapa)
 {
-    currentTime = 0;
-    firstFinTime = make_pair(DSIZE, -1);
+    hashDevice.clear();
 
-    pclist.clear();
-    subPCs.clear();
-    Clients client;
-    PC pc;
-    initVar(0, client, pc);
+    devices[0] = Device();
+    dIdx = 1;
 
-    serverTree[0].cID = 0;
-    serverTree[0].speed = mCapa;
-    serverTree[0].sTime = 0;
+    devices[0].capa = mCapa;
+    pIdx = 0;
 }
 
 void addHub(int mTime, int mParentID, int mID)
 {
-    currentTime = mTime;
-    serverTree[mParentID].children.push_back(mID);
-    serverTree[mID].cID = mID;
-    serverTree[mID].sTime = mTime;
+    devices[dIdx] = Device();
+    hashDevice[mID] = dIdx;
 
-    idxParent[mID] = mParentID;
+    int parent = hashDevice[mParentID];
+    devices[parent].children.push(dIdx);
+
+    devices[dIdx++].init(false, mTime, parent, mID);
 }
 
 int removeHub(int mTime, int mID)
 {
-    currentTime = mTime;
-    subPCs.clear();
-
-    updateNet();
-    updateSpeed(0, currentTime);
-    checkSubPC(mID);
-
-    if (subPCs.empty()) {
-        return 1;
+    updateTime(mTime);
+    int idx = hashDevice[mID];
+    if (devices[idx].nConnect > 0) {
+        return 0;
     }
-    return 0;
+    return 1;
 }
 
 void requestDL(int mTime, int mParentID, int mpcID, int mSize)
 {
+    updateTime(mTime);
 
-    currentTime = mTime - 1;
-    updateNet();
-    updateSpeed(0, currentTime);
+    devices[dIdx] = Device();
+    hashDevice[mpcID] = dIdx;
+    pcList[pIdx++] = dIdx;
 
-    pclist.push_back(mpcID);
-    currentTime = mTime;
-    serverTree[mParentID].children.push_back(mpcID);
-    serverTree[mpcID].cID = mpcID;
-    serverTree[mpcID].isPC = true;
-    serverTree[mpcID].sTime = mTime;
+    int parent = hashDevice[mParentID];
+    devices[parent].children.push(dIdx);
 
-    idxParent[mpcID] = mParentID;
-    downloads[mpcID].capacity = mSize;
+    devices[dIdx].init(true, mTime, parent, mpcID);
+    devices[dIdx].capacity = mSize;
+    connectHub(dIdx);
+    divideCapa(topHub);
 
-    updateConnection(mpcID);
-    updateSpeed(0, currentTime);
+    dIdx++;
 }
 
 Result checkPC(int mTime, int mpcID)
@@ -216,17 +214,13 @@ Result checkPC(int mTime, int mpcID)
     res.finish = 0;
     res.param = 0;
 
-    currentTime = mTime;
+    int idx = hashDevice[mpcID];
+    updateTime(mTime);
 
-    updateNet();
-    updateSpeed(0, currentTime);
-
-    res.finish = downloads[mpcID].isComplete;
-    if (res.finish) {
-        res.param = downloads[mpcID].eTime;
+    if (!devices[idx].isConnected) {
+        res.finish = 1;
+        res.param = devices[idx].time;
     }
-    else {
-        res.param = downloads[mpcID].capacity;
-    }
+    else { res.param = devices[idx].capacity; }
     return res;
 }
