@@ -1,115 +1,132 @@
-#include <map>
 #include <string>
-#include <iostream>
 #include <vector>
+#include <unordered_map>
+#include <deque>
 
 using namespace std;
 
-int queueIdx;
-int queueSt;
-vector<pair<string, int> > loginQueue;
-map<string, int> idxDict;
-map<string, vector<pair<string, int> > > charDict;
+#define MAXACCOUNT 50000
+#define ALPHABET 27
+
+class Account {
+public:
+    string id;
+    bool isWaiting;
+    int cnt;
+
+    Account() {
+        id = "";
+        isWaiting = false;
+        cnt = 0;
+    }
+
+    void init(char mID[10]) {
+        id = mID;
+        isWaiting = true;
+        cnt++;
+    }
+};
+
+int idIdx;
+Account accounts[MAXACCOUNT];
+deque< pair<int, int> > queue;
+unordered_map<string, int> hashAccount;
+int hashSubId[ALPHABET][ALPHABET][MAXACCOUNT / 2];
+int hIdx[ALPHABET][ALPHABET];
 
 void init()
 {
-    queueIdx = 0;
-    queueSt = 0;
-
-    loginQueue.clear();
-    idxDict.clear();
-    charDict.clear();
+    idIdx = 0;
+    queue.clear();
+    hashAccount.clear();
+    for (int i = 0; i < ALPHABET; i++) {
+        for (int j = 0; j < ALPHABET; j++) {
+            hIdx[i][j] = 0;
+        }
+    }
 }
 
 void loginID(char mID[10])
 {
-    map<string, int>::iterator it;
-    it = idxDict.find(mID);
-    if (it != idxDict.end())
-    {
-        loginQueue[idxDict[mID]].second = 1;
+    unordered_map<string, int>::iterator it = hashAccount.find(mID);
+
+    if (it == hashAccount.end()) {
+        hashAccount[mID] = idIdx;
+        int key1 = (int) mID[0] - 96; int key2 = (int) mID[1] - 96;
+        hashSubId[key1][key2][hIdx[key1][key2]++] = idIdx;
+        hashSubId[key1][0][hIdx[key1][0]++] = idIdx;
+
+        accounts[idIdx].init(mID);
+        queue.push_back(make_pair(idIdx, accounts[idIdx].cnt));
+        idIdx++;
     }
-    
-    loginQueue.push_back(make_pair(mID, 0));
-    idxDict[mID] = queueIdx;
+    else {
+        int idx = hashAccount[mID];
+        accounts[idx].isWaiting = true;
+        queue.push_back(make_pair(idx, ++accounts[idx].cnt));
+    }
+}
 
-    string s = mID;
-    string subS = s.substr(0, 3);
-    charDict[subS].push_back(make_pair(s, queueIdx));
-
-    queueIdx++;
-    return;
+bool checkStr(char mStr[10], string id) {
+    string str = mStr;
+    for (int i = 0; i < str.size(); i++) {
+        if (str[i] != id[i]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 int closeIDs(char mStr[10])
 {
-    int count = 0;
-    string s = mStr;
-    int le = s.length();
-    string subS = s.substr(0, 3);
+    int ans = 0;
+    int key1 = (int) mStr[0] - 96;
+    int key2 = 0;
+    if (mStr[1] != '\0') { key2 = (int) mStr[1] - 96; }
 
-    int k = charDict[subS].size();
-    for (int i=0; i < k; i++)
-    {
-        int qIdx = charDict[subS][i].second;
-        if ((s == charDict[subS][i].first.substr(0, le)) && (!loginQueue[qIdx].second))
-        {
-            count++;
-            loginQueue[qIdx].second = 1;
+    for (int i = 0; i < hIdx[key1][key2]; i++) {
+        int idx = hashSubId[key1][key2][i];
+        if (checkStr(mStr, accounts[idx].id) && accounts[idx].isWaiting) {
+            ans++;
+            accounts[idx].isWaiting = false;
+            accounts[idx].cnt++;
         }
     }
-    return count;
+
+    return ans;
 }
 
 void connectCnt(int mCnt)
 {
-    int k = 0;
-    while (k < mCnt)
-    {
-        if (loginQueue[queueSt].second)
-        {
-            loginQueue[queueSt].second = 1;
-            queueSt++;
-        }
-        else
-        {
-            loginQueue[queueSt].second = 1;
-            queueSt++;
-            k += 1;
+    while (mCnt > 0) {
+        pair<int, int> idx = queue.front();
+        queue.pop_front();
+        if (accounts[idx.first].isWaiting && idx.second == accounts[idx.first].cnt) {
+            accounts[idx.first].isWaiting = false;
+            mCnt--;
         }
     }
-    
-    return;
 }
 
 int waitOrder(char mID[10])
 {
-    int count = 0;
-    map<string, int>::iterator it;
-    
-    it = idxDict.find(mID);
-    if (it == idxDict.end())
-    {
+    unordered_map<string, int>::iterator it = hashAccount.find(mID);
+    if (it == hashAccount.end()) {
         return 0;
     }
 
-    int idx = idxDict[mID];
-    if (loginQueue[idx].second)
-    {
-        return 0;
-    }
+    int idx = hashAccount[mID];
+    if (!accounts[idx].isWaiting) { return 0; }
 
-    for (int i=queueSt; i < queueIdx; i++)
-    {
-        if (!loginQueue[i].second)
-        {
-            count++;
-        }
-        if ((loginQueue[i].first == mID) && (!loginQueue[i].second))
-        {
-            break;
+    int ans = 0;
+    for (int i = 0; i < queue.size(); i++) {
+        if (accounts[queue[i].first].isWaiting && accounts[queue[i].first].cnt == queue[i].second) { ans++; }
+
+        if (accounts[queue[i].first].id == mID && accounts[queue[i].first].isWaiting) {
+            if (accounts[queue[i].first].cnt == queue[i].second) {
+                break;
+            }
         }
     }
-    return count;
+    return ans;
 }
-

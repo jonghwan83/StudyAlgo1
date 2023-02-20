@@ -3,8 +3,7 @@
 #endif
 
 #include <stdio.h>
-#include <chrono>
-#include <iostream>
+#include <time.h>
 
 using namespace std;
 
@@ -23,55 +22,56 @@ extern int waitOrder(char mID[10]);
 #define CMD_ORDER 4
 
 static bool run() {
- int q;
-scanf("%d", &q);
+    int q;
+    scanf("%d", &q);
 
- char str[10];
- int cmd, ans, ret;
- bool okay = false;
+    char str[10];
+    int cmd, ans, ret;
+    bool okay = false;
 
- for (int i = 0; i < q; ++i) {
-  scanf("%d", &cmd);
-  switch (cmd) {
-  case CMD_INIT:
-   init();
-   okay = true;
-   break;
+    for (int i = 0; i < q; ++i) {
+        scanf("%d", &cmd);
+        switch (cmd) {
+            case CMD_INIT:
+                init();
+                okay = true;
+                break;
 
-  case CMD_LOGIN:
-   scanf("%s", str);
-   loginID(str);
-   break;
+            case CMD_LOGIN:
+                scanf("%s", str);
+                loginID(str);
+                break;
 
-  case CMD_CLOSE:
-   scanf("%d %s", &ans, str);
-   ret = closeIDs(str);
-   if (ans != ret)
-    okay = false;
-   break;
+            case CMD_CLOSE:
+                scanf("%d %s", &ans, str);
+                ret = closeIDs(str);
+                if (ans != ret)
+                    okay = false;
+                break;
 
-  case CMD_CONNECT:
-   scanf("%d", &ans);
-   connectCnt(ans);
-   break;
+            case CMD_CONNECT:
+                scanf("%d", &ans);
+                connectCnt(ans);
+                break;
 
-  case CMD_ORDER:
-   scanf("%d %s", &ans, str);
-   ret = waitOrder(str);
-   if (ans != ret)
-    okay = false;
-   break;
+            case CMD_ORDER:
+                scanf("%d %s", &ans, str);
+                ret = waitOrder(str);
+                if (ans != ret)
+                    okay = false;
+                break;
 
-  default:
-   okay = false;
-   break;
-  }
- }
- return okay;
+            default:
+                okay = false;
+                break;
+        }
+    }
+    return okay;
 }
 
 int main() {
-    chrono::steady_clock::time_point start = chrono::high_resolution_clock::now();
+    clock_t start, end;
+    start = clock();
 
     setbuf(stdout, NULL);
     freopen("sample_input.txt", "r", stdin);
@@ -80,11 +80,12 @@ int main() {
     scanf("%d %d", &T, &MARK);
 
     for (int tc = 1; tc <= T; tc++) {
-    int score = run() ? MARK : 0;
-    printf("#%d %d\n", tc, score);
+        int score = run() ? MARK : 0;
+        printf("#%d %d\n", tc, score);
     }
 
-    chrono::steady_clock::time_point end = chrono::high_resolution_clock::now();
-    cout << "elapsed: " << chrono::duration_cast<chrono::milliseconds>(end-start).count() << "\n";
+    end = clock() - start;
+    printf("elapsed: %f\n", (float) end / CLOCKS_PER_SEC);
+
     return 0;
 }
