@@ -4,41 +4,6 @@
 
 using namespace std;
 
-class Node {
-public:
-    int idx;
-    Node* next;
-
-    Node() {
-        idx = -1;
-        next = nullptr;
-    }
-};
-
-class LinkedList {
-public:
-    Node* head;
-    Node* tail;
-    int length;
-
-    LinkedList() { 
-        head = nullptr;
-        tail = nullptr;
-        length = 0; 
-    }
-
-    void push(int a) {
-        Node* node = new Node();
-        node->idx = a;
-        node->next = head;
-
-        if (!tail) { tail = node; }
-
-        head = node;
-        length++;
-    }
-};
-
 class Equation {
 public:
     string eqn;
@@ -108,12 +73,10 @@ public:
 
 int eIdx, eqnLen, sumEqn;
 Equation equations[MAXARR];
-LinkedList group;
 
 void init(int mLen, char mSubexp[])
 {
     eqnLen = mLen + 1;
-    group = LinkedList();
 
     eIdx = 0;
     equations[eIdx].init('+', mSubexp);
