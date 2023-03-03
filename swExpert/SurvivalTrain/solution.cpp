@@ -75,61 +75,27 @@ public:
 
     Data pop() {
         Data ans = arr[0];
-
-        length--;
-        arr[0] = arr[length];
+        arr[0] = arr[--length];
 
         int idx = 0;
-        int left, right;
-        Data temp;
-        while (idx < length) {
-            left = idx * 2 + 1;
-            right = idx * 2 + 2;
+        int left, right, child;
+        while (2 * idx + 1 < length) {
+            left = 2 * idx + 1;
+            right = 2 * idx + 2;
 
-            if (left >= length && right >= length) {
-                break;
+            if (right < length) {
+                if (compare(left, right)) { child = right;}
+                else { child = left; }
             }
+            else { child = left; }
 
-            if (isMinHeap) {
-                if (right < length &&
-                (arr[left].point > arr[right].point ||
-                (arr[left].point == arr[right].point && arr[left].id < arr[right].id))) {
-                    if (compare(idx, right)) {
-                        temp = arr[right];
-                        arr[right] = arr[idx];
-                        arr[idx] = temp;
-                        idx = right;
-                    } else { break; }
-                }
-                else {
-                    if (compare(idx, left)) {
-                        temp = arr[left];
-                        arr[left] = arr[idx];
-                        arr[idx] = temp;
-                        idx = left;
-                    } else { break; }
-                }
+            if (compare(idx, child)) {
+                Data temp = arr[idx];
+                arr[idx] = arr[child];
+                arr[child] = temp;
+                idx = child;
             }
-            else {
-                if (right < length &&
-                (arr[left].point < arr[right].point ||
-                arr[left].point == arr[right].point && arr[left].id > arr[right].id)) {
-                    if (compare(idx, right)) {
-                        temp = arr[right];
-                        arr[right]  = arr[idx];
-                        arr[idx] = temp;
-                        idx = right;
-                    } else { break; }
-                }
-                else {
-                    if (compare(idx, left)) {
-                        temp = arr[left];
-                        arr[left] = arr[idx];
-                        arr[idx] = temp;
-                        idx = left;
-                    } else { break; }
-                }
-            }
+            else { break; }
         }
         return ans;
     }
