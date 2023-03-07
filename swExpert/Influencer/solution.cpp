@@ -1,43 +1,137 @@
-#include <vector>
-#include <algorithm>
-#include <deque>
+#define MAXFRIEND 15
+#define MAXMEMBER 20000
+#define MAXSIZE 100
 
-#define MAXMEMBERS 20000
+class Data {
+public:
+    int depth;
+    int idx;
+};
 
-using namespace std;
+class Queue {
+public:
+    int st;
+    int ed;
+    int length;
+    Data arr[MAXSIZE];
 
-int totalmember;
-vector<int> depthPower = { 10, 5, 3, 2 };
-vector< vector < vector< pair<int, bool> > > > graph(MAXMEMBERS, vector< vector< pair<int, bool> > >(4));
-vector<int> buyingPower(MAXMEMBERS);
-vector<int> hashInfluence(MAXMEMBERS);
-vector< vector<int> > memberRanking;
-vector<int> version(MAXMEMBERS);
-
-void updateGraph(int start) {
-    deque< pair<int, int> > queue;
-    vector<bool> visited(MAXMEMBERS);
-    visited[start] = true;
-
-    for (int i = 0; i < graph[start][1].size(); i++) {
-        queue.push_back(make_pair(graph[start][1][i].first, 1));
-        visited[graph[start][1][i].first] = true;
-        hashInfluence[start] += (buyingPower[graph[start][1][i].first] * depthPower[1]);
+    Queue() {
+        st = 0;
+        ed = 0;
+        length = 0;
     }
 
-    pair<int, int> node;
-    while (!queue.empty()) {
-        node = queue.front();
-        queue.pop_front();
+    void push(int nDepth, int mID) {
+        Data last = Data();
+        last.depth = nDepth; last.idx = mID;
+        arr[ed++] = last;
+        length++;
+    }
 
-        if (node.second < 3) {
-            for (int i = 0; i < graph[node.first][1].size(); i++) {
-                if (!visited[graph[node.first][1][i].first]) {
-                    graph[start][node.second + 1].push_back(make_pair(graph[node.first][1][i].first, true));
-                    visited[graph[node.first][1][i].first] = true;
-                    hashInfluence[start] += (buyingPower[graph[node.first][1][i].first] * depthPower[node.second + 1]);
-                    queue.push_back(make_pair(graph[node.first][1][i].first, node.second + 1));
-                }
+    Data pop() {
+        Data ans = arr[st++];
+        length--;
+        return ans;
+    }
+};
+
+class HeapNode {
+public:
+    int influence;
+    int idx;
+};
+
+class Heap {
+public:
+    int length;
+    HeapNode arr[MAXMEMBER * 3];
+
+    void init() { length = 0; }
+    bool compare(int parent, int child) {
+        if (arr[parent].influence < arr[child].influence) { return true; }
+        if (arr[parent].influence == arr[child].influence && arr[parent].idx > arr[child].idx) { return true; }
+        return false;
+    }
+
+    void push(int inf, int id) {
+        HeapNode last = HeapNode();
+        last.influence = inf; last.idx = id;
+
+        int idx = length;
+        arr[length++] = last;
+
+        while ((idx - 1) / 2 < length && compare((idx - 1) / 2, idx)) {
+            HeapNode temp = arr[idx];
+            arr[idx] = arr[(idx - 1) / 2];
+            arr[(idx - 1) / 2] = temp;
+            idx = (idx - 1) / 2;
+        }
+    }
+
+    HeapNode pop() {
+        HeapNode ans = arr[0];
+        arr[0] = arr[--length];
+
+        int idx = 0;
+        int left, right, child;
+        while (2 * idx + 1 < length) {
+            left = 2 * idx + 1;
+            right = 2 * idx + 2;
+            if (right < length) {
+                if (compare(left, right)) { child = right; }
+                else { child = left;}
+            }
+            else { child = left; }
+
+            if (compare(idx, child)) {
+                HeapNode temp = arr[idx];
+                arr[idx] = arr[child];
+                arr[child] = temp;
+                idx= child;
+            }
+            else { break; }
+        }
+        return ans;
+    }
+};
+
+class Member {
+public:
+    int size;
+    int friends[MAXFRIEND];
+    int power;
+    int influence;
+
+    void init() {
+        size = 0;
+        influence = 0;
+    }
+
+    void push(int idx) {
+        friends[size++] = idx;
+    }
+};
+
+int parameters[4] = { 10, 5, 3, 2};
+Member members[MAXMEMBER];
+int visited[MAXMEMBER];
+int nVisited;
+Heap pQueue;
+Queue initQueue;
+
+void bfs(int idx) {
+    Queue queue;
+    queue.push(0, idx);
+    visited[idx] = nVisited;
+
+    while (queue.length > 0) {
+        Data curr = queue.pop();
+        members[idx].influence += parameters[curr.depth] * members[curr.idx].power;
+
+        for (int i = 0; i < members[curr.idx].size; i++) {
+            if (visited[members[curr.idx].friends[i]] < nVisited && curr.depth < 3) {
+                visited[members[curr.idx].friends[i]] = nVisited;
+                queue.push(curr.depth + 1, members[curr.idx].friends[i]);
             }
         }
     }
@@ -45,166 +139,107 @@ void updateGraph(int start) {
 
 void init(int N, int mPurchasingPower[20000], int M, int mFriend1[20000], int mFriend2[20000])
 {
-    memberRanking.clear();
-    totalmember = N;
+    pQueue.init();
+    nVisited = 1;
     for (int i = 0; i < N; i++) {
-        version[i] = 0;
-        buyingPower[i] = mPurchasingPower[i];
-        for (int j = 0; j < 4; j++) {
-            graph[i][j].clear();
-        }
-        graph[i][0].push_back(make_pair(i, true));
-        hashInfluence[i] = (buyingPower[i] * depthPower[0]);
+        members[i].init();
+        members[i].power = mPurchasingPower[i];
+        visited[i] = 0;
     }
 
     for (int i = 0; i < M; i++) {
-        graph[mFriend1[i]][1].push_back(make_pair(mFriend2[i], true));
-        graph[mFriend2[i]][1].push_back(make_pair(mFriend1[i], true));
+        members[mFriend1[i]].push(mFriend2[i]);
+        members[mFriend2[i]].push(mFriend1[i]);
     }
 
-    for (int i = 0; i < totalmember; i++) {
-        updateGraph(i);
-        memberRanking.push_back({ hashInfluence[i], -i, 0 });
-        push_heap(memberRanking.begin(), memberRanking.end());
+    for (int i = 0; i < N; i++) {
+        bfs(i);
+        nVisited++;
+        pQueue.push(members[i].influence, i);
     }
 }
 
 int influencer(int mRank)
 {
-    int k = 0;
-    vector< vector<int> > temp;
-    while (k < mRank) {
-        if (memberRanking.front()[2] == version[-memberRanking.front()[1]]) {
-            temp.push_back(memberRanking.front());
-            pop_heap(memberRanking.begin(), memberRanking.end());
-            memberRanking.pop_back();
-            k++;
-        }
-        else {
-            pop_heap(memberRanking.begin(), memberRanking.end());
-            memberRanking.pop_back();
+    HeapNode temp[MAXMEMBER];
+    int tIdx = 0;
+
+    HeapNode curr;
+    while (mRank > 0) {
+        curr = pQueue.pop();
+        if (curr.influence == members[curr.idx].influence && visited[curr.idx] < nVisited) {
+            mRank--;
+            temp[tIdx++] = curr;
+            visited[curr.idx] = nVisited;
         }
     }
 
-    int ans = -temp.back()[1];
-
-    for (auto t : temp) {
-        memberRanking.push_back(t);
-        push_heap(memberRanking.begin(), memberRanking.end());
+    for (int i = 0; i < tIdx; i++) {
+        pQueue.push(temp[i].influence, temp[i].idx);
     }
 
-    return ans;
-}
-
-void updatePower(int start, int power) {
-    for (int i = 0; i < 4; i++) {
-        for (auto node : graph[start][i]) {
-            if (node.second) {
-                hashInfluence[node.first] += (power * depthPower[i]);
-                memberRanking.push_back({ hashInfluence[node.first], -node.first, ++version[node.first] });
-                push_heap(memberRanking.begin(), memberRanking.end());
-            }
-        }
-    }
+    nVisited++;
+    return curr.idx;
 }
 
 int addPurchasingPower(int mID, int mPower)
 {
-    updatePower(mID, mPower);
-    buyingPower[mID] += mPower;
+    members[mID].power += mPower;
 
-    return hashInfluence[mID];
-}
+    Queue queue;
+    queue.push(0, mID);
+    visited[mID] = nVisited;
 
-void addNode(int member1, int member2, int depth, int relativeDepth) {
-    if (relativeDepth > 3) { return; }
+    while (queue.length > 0) {
+        Data curr = queue.pop();
+        members[curr.idx].influence += parameters[curr.depth] * mPower;
+        pQueue.push(members[curr.idx].influence, curr.idx);
 
-    for (auto m2 : graph[member2][depth]) {
-        if (m2.second && member1 != m2.first) {
-            bool connectFlag = true;
-            for (int i = 1; i <= relativeDepth; i++) {
-                for (int j = 0; j < graph[member1][i].size(); j++) {
-                    if (graph[member1][i][j].second && graph[member1][i][j].first == m2.first) {
-                        connectFlag = false;
-                    }
-                }
-            }
-
-            if (connectFlag) {
-                hashInfluence[member1] += (buyingPower[m2.first] * depthPower[relativeDepth]);
-                for (int i = relativeDepth + 1; i < 4; i++) {
-                    for (int j = 0; j < graph[member1][i].size(); j++) {
-                        if (graph[member1][i][j].second && graph[member1][i][j].first == m2.first) {
-                            graph[member1][i][j].second = false;
-                            hashInfluence[member1] -= (buyingPower[m2.first] * depthPower[i]);
-                        }
-                    }
-                }
+        for (int i = 0; i < members[curr.idx].size; i++) {
+            if (visited[members[curr.idx].friends[i]] < nVisited && curr.depth < 3) {
+                visited[members[curr.idx].friends[i]] = nVisited;
+                queue.push(curr.depth + 1, members[curr.idx].friends[i]);
             }
         }
     }
-    addNode(member1, member2, depth + 1, relativeDepth + 1);
+
+    nVisited++;
+    return members[mID].influence;
 }
 
-void reconnectNode(int member1, int member2, int depth, int relativeDepth) {
-    if (relativeDepth > 3) { return; }
-    
-    for (auto m2 : graph[member2][depth]) {
-        if (m2.second && member1 != m2.first) {
-            bool connectFlag = true;
-            for (int i = 1; i <= relativeDepth; i++) {
-                for (int j = 0; j < graph[member1][i].size(); j++) {
-                    if (graph[member1][i][j].second && graph[member1][i][j].first == m2.first) {
-                        connectFlag = false;
-                    }
-                }
-            }
-            if (connectFlag) {
-                graph[member1][relativeDepth].push_back(make_pair(m2.first, true));
+void initInfluence(int idx) {
+    Queue queue;
+    queue.push(0, idx);
+    visited[idx] = nVisited;
 
-                for (int i = relativeDepth + 1; i < 4; i++) {
-                    for (int j = 0; j < graph[member1][i].size(); j++) {
-                        if (graph[member1][i][j].second && graph[member1][i][j].first == m2.first) {
-                            graph[member1][i][j].second = false;
-                        }
-                    }
-                }
+    while (queue.length > 0) {
+        Data curr = queue.pop();
+        members[curr.idx].influence = 0;
+        initQueue.push(curr.depth, curr.idx);
+
+        for (int i = 0; i < members[curr.idx].size; i++) {
+            if (visited[members[curr.idx].friends[i]] < nVisited && curr.depth < 3) {
+                visited[members[curr.idx].friends[i]] = nVisited;
+                queue.push(curr.depth + 1, members[curr.idx].friends[i]);
             }
         }
     }
-    reconnectNode(member1, member2, depth + 1, relativeDepth + 1);
 }
 
 int addFriendship(int mID1, int mID2)
 {
-    for (int depth = 0; depth < 3; depth++) {
-        for (auto m1 : graph[mID1][depth]) {
-            if (m1.second) {
-                addNode(m1.first, mID2, 0, depth + 1);
-                memberRanking.push_back({ hashInfluence[m1.first], -m1.first, ++version[m1.first] });
-                push_heap(memberRanking.begin(), memberRanking.end());
-            }
-        }
-        for (auto m2 : graph[mID2][depth]) {
-            if (m2.second) {
-                addNode(m2.first, mID1, 0, depth + 1);
-                memberRanking.push_back({ hashInfluence[m2.first], -m2.first, ++version[m2.first] });
-                push_heap(memberRanking.begin(), memberRanking.end());
-            }
-        }
+    initQueue = Queue();
+    members[mID1].push(mID2);
+    members[mID2].push(mID1);
+
+    initInfluence(mID1);
+    nVisited++;
+    while (initQueue.length > 0) {
+        Data curr = initQueue.pop();
+        bfs(curr.idx);
+        nVisited++;
+        pQueue.push(members[curr.idx].influence, curr.idx);
     }
 
-    for (int depth = 0; depth < 3; depth++) {
-        for (auto m1 : graph[mID1][depth]) {
-            if (m1.second) {
-                reconnectNode(m1.first, mID2, 0, depth + 1);
-            }
-        }
-        for (auto m2 : graph[mID2][depth]) {
-            if (m2.second) {
-                reconnectNode(m2.first, mID1, 0, depth + 1);
-            }
-        }
-    }
-    return hashInfluence[mID1] + hashInfluence[mID2];
+    return members[mID1].influence + members[mID2].influence;
 }
