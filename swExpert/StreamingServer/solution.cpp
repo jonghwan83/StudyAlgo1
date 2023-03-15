@@ -134,6 +134,8 @@ User users[MAXLength];
 int visited[MAXServer];
 int nDfs;
 Heap waiting;
+Heap closest;
+HeapNode temp[MAXLength];
 
 int getDistance(int uid, int sid) {
     return min(abs(servers[sid].axis - users[uid].axis),
@@ -155,7 +157,6 @@ void init(int L, int N, int C, int axis[MAXServer]) {
 }
 
 void push_user(int uid) {
-    Heap closest;
     closest.init(false, false);
 
     for (int i = 0; i < totalServer; i++) {
@@ -203,7 +204,6 @@ int add_user(int uid, int axis) {
 }
 
 void pop_user(int sid) {
-    HeapNode temp[MAXLength];
     int tIdx = 0;
 
     HeapNode userInfo;
