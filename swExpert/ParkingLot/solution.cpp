@@ -1,40 +1,102 @@
 #include <unordered_map>
-#include <queue>
-#include <cmath>
-
-#define MAXTIME 300001
 
 using namespace std;
+
+#define MAXCAR 70000
+#define MAXTIME 300001
+
+class HeapNode {
+public:
+    int totalWaiting;
+    int wait;
+    int idx;
+};
+
+class Heap {
+public:
+    int length;
+    HeapNode arr[MAXCAR];
+
+    void init() { length = 0; }
+    bool compare(int parent, int child) {
+        if (arr[parent].totalWaiting < arr[child].totalWaiting) { return true; }
+        if (arr[parent].totalWaiting == arr[child].totalWaiting && arr[parent].wait > arr[child].wait) { return true; }
+        return false;
+    }
+
+    void push(int waiting, int w, int i) {
+        HeapNode last = HeapNode();
+        last.totalWaiting = waiting; last.wait = w; last.idx = i;
+
+        int idx = length;
+        arr[length++] = last;
+        while((idx - 1) / 2 >= 0 && compare((idx - 1) / 2, idx)) {
+            HeapNode temp = arr[idx];
+            arr[idx] = arr[(idx - 1) / 2];
+            arr[(idx - 1) / 2] = temp;
+            idx = (idx - 1) / 2;
+        }
+    }
+
+    HeapNode pop() {
+        HeapNode ans = arr[0];
+        arr[0] = arr[--length];
+
+        int idx = 0;
+        int left, right, child;
+        while (2 * idx + 1 < length) {
+            left = 2 * idx + 1;
+            right = 2 * idx + 2;
+
+            if (right < length) {
+                if (compare(left, right)) { child = right; }
+                else { child = left;}
+            }
+            else { child = left; }
+
+            if (compare(idx, child)) {
+                HeapNode temp = arr[idx];
+                arr[idx] = arr[child];
+                arr[child] = temp;
+                idx = child;
+            }
+            else { break; }
+        }
+        return ans;
+    }
+};
 
 class Car {
 public:
     int id;
-    int parkingTime;
-    int waitingTime;
-    int totalParkingTime;
-    int totalWaitingTime;
+    int arrived;
+    int parked;
     bool isParking;
     bool isWaiting;
-    int waitingNo;
+    int totalWaiting;
+    int totalParking;
+    int ticket;
 
     Car() {
-        id = 0;
-        parkingTime = 0;
-        waitingTime = 0;
-        totalWaitingTime = 0;
-        totalParkingTime = 0;
+        arrived = 0;
+        parked = 0;
         isParking = false;
         isWaiting = false;
-        waitingNo = 0;
+        totalParking = 0;
+        totalWaiting = 0;
+        ticket = 0;
     }
 };
 
-int baseTime, baseFee, unitTime, unitFee, capacity, nParking, nWaiting, waitingNo;
-unordered_map<int, Car> cars;
-priority_queue< vector<int> > pQueue;
+int baseTime, baseFee, unitTime, unitFee, capa;
+int nParking, nWaiting, waitNo;
+Car cars[MAXCAR];
+unordered_map<int, int> hashCar;
+Heap waiting;
+int cIdx;
 
-int calculateFee(int mTime, int mCar) {
-    float parkingTime = (float) mTime - (float)cars[mCar].parkingTime;
+int calculateFee(int mTime, int idx) {
+    float parkingTime = (float) mTime - (float)cars[idx].parked;
     if (parkingTime <= baseTime) {
         return baseFee;
     }
@@ -46,66 +108,70 @@ void init(int mBaseTime, int mBaseFee, int mUnitTime, int mUnitFee, int mCapacit
     baseFee = mBaseFee;
     unitTime = mUnitTime;
     unitFee = mUnitFee;
-    capacity = mCapacity;
+    capa = mCapacity;
 
+    hashCar.clear();
     nParking = 0;
     nWaiting = 0;
-    waitingNo = 0;
-
-    cars.clear();
-    pQueue = priority_queue< vector<int> >();
+    cIdx = 0;
+    waitNo = 0;
+    waiting.init();
 
     return;
 }
 
-int arrive(int mTime, int mCar) {
-    cars[mCar].id = mCar;
+void push_car(int idx, int mTime, int mCar) {
+    cars[idx].id = mCar;
+    cars[idx].arrived = mTime;
 
-    if (nParking < capacity) {
-        cars[mCar].isParking = true;
-        cars[mCar].parkingTime = mTime;
+    if (nParking < capa) {
+        cars[idx].isParking = true;
+        cars[idx].parked = mTime;
         nParking++;
     }
     else {
-        cars[mCar].isWaiting = true;
-        cars[mCar].waitingTime = mTime;
+        cars[idx].isWaiting = true;
+        cars[idx].ticket = waitNo;
+        waiting.push(MAXTIME - mTime + cars[idx].totalWaiting - cars[idx].totalParking, waitNo++, idx);
         nWaiting++;
-
-        pQueue.push({ MAXTIME - mTime + cars[mCar].totalWaitingTime - cars[mCar].totalParkingTime, --waitingNo, mCar });
-        cars[mCar].waitingNo = waitingNo;
     }
+}
 
+int arrive(int mTime, int mCar) {
+    unordered_map<int, int>::iterator itr = hashCar.find(mCar);
+    if (itr == hashCar.end()) {
+        cars[cIdx] = Car();
+        hashCar[mCar] = cIdx;
+        push_car(cIdx, mTime, mCar);
+        cIdx++;
+    }
+    else {
+        push_car(itr->second, mTime, mCar);
+    }
     return nWaiting;
 }
 
 int leave(int mTime, int mCar) {
-    int ans = 0;
-    if (cars[mCar].isParking) {
-        ans = calculateFee(mTime, mCar);
-
-        cars[mCar].isParking = false;
-        cars[mCar].totalParkingTime += mTime - cars[mCar].parkingTime;
-        nParking--;
-    }
-
-    if (cars[mCar].isWaiting) {
-        cars[mCar].isWaiting = false;
-        cars[mCar].totalWaitingTime += mTime - cars[mCar].waitingTime;
+    unordered_map<int, int>::iterator itr = hashCar.find(mCar);
+    if (cars[itr->second].isWaiting) {
+        cars[itr->second].isWaiting = false;
+        cars[itr->second].totalWaiting += mTime - cars[itr->second].arrived;
         nWaiting--;
         return -1;
     }
 
-    vector<int> car;
-    while (pQueue.size() > 0) {
-        car = pQueue.top();
-        pQueue.pop();
+    int ans = calculateFee(mTime, itr->second);
+    cars[itr->second].totalParking += mTime - cars[itr->second].parked;
+    cars[itr->second].isParking = false;
+    nParking--;
 
-        if (cars[car[2]].isWaiting && cars[car[2]].waitingNo == car[1]) {
-            cars[car[2]].isWaiting = false;
-            cars[car[2]].totalWaitingTime += mTime - cars[car[2]].waitingTime;
-            cars[car[2]].isParking = true;
-            cars[car[2]].parkingTime = mTime;
-            nParking++;
+    HeapNode curr;
+    while (waiting.length > 0) {
+        curr = waiting.pop();
+        if (cars[curr.idx].isWaiting && curr.wait == cars[curr.idx].ticket) {
+            cars[curr.idx].totalWaiting += mTime - cars[curr.idx].arrived;
+            cars[curr.idx].isWaiting = false;
+            push_car(curr.idx, mTime, cars[curr.idx].id);
             nWaiting--;
             break;
         }
