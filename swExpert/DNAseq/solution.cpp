@@ -16,12 +16,14 @@ public:
 Gene genes[MAXGENE];
 int gIdx;
 unordered_map<string, vector<int> > hashSeq;
+unordered_map<string, int> hashFullSeq;
 unordered_map<int, int> hashID;
 
 void init()
 {
     gIdx = 0;
     hashSeq.clear();
+    hashFullSeq.clear();
     hashID.clear();
 }
 
@@ -30,16 +32,15 @@ int addSeq(int mID, int mLen, char mSeq[])
     unordered_map<int, int>::iterator itr_id = hashID.find(mID);
     if (itr_id != hashID.end() && !genes[itr_id->second].isRemoved) { return 0; }
 
+    unordered_map<string, int>::iterator itr_full = hashFullSeq.find(mSeq);
+    if (itr_full != hashFullSeq.end() && !genes[itr_full->second].isRemoved) { return 0; }
+
     string key = "";
     for (int i = 0; i < 3; i++) { key += mSeq[i]; }
-    unordered_map<string, vector<int> >::iterator itr_str = hashSeq.find(key);
-
-    for (int idx : hashSeq[key]) {
-        if (genes[idx].sequence == mSeq && !genes[idx].isRemoved) { return 0; }
-    }
 
     hashID[mID] = gIdx;
     hashSeq[key].push_back(gIdx);
+    hashFullSeq[mSeq] = gIdx;
 
     genes[gIdx].id = mID;
     genes[gIdx].sequence = mSeq;
@@ -116,20 +117,20 @@ int changeBase(int mID, int mPos, char mBase)
     string newSeq = genes[itr_id->second].sequence;
     newSeq[mPos] = mBase;
 
-    string key = "";
-    for (int i = 0; i < 3; i++) { key += newSeq[i]; }
-    for (int idx : hashSeq[key]) {
-        if (genes[idx].sequence == newSeq && !genes[idx].isRemoved) { return 0; }
-    }
-
-    genes[gIdx].id = genes[itr_id->second].id;
+    unordered_map<string, int>::iterator itr_full = hashFullSeq.find(newSeq);
+    if (itr_full != hashFullSeq.end() && !genes[itr_full->second].isRemoved) { return 0; }
+    
+    genes[itr_id->second].isRemoved = true;
+    genes[gIdx].id = mID;
     genes[gIdx].sequence = newSeq;
     genes[gIdx].isRemoved = false;
 
-    genes[itr_id->second].isRemoved = true;
+    hashID[mID] = gIdx;
+    hashFullSeq[newSeq] = gIdx;
 
+    string key = "";
+    for (int i = 0; i < 3; i++) { key += newSeq[i]; }
     hashSeq[key].push_back(gIdx);
-    hashID[genes[itr_id->second].id] = gIdx;
 
     gIdx++;
     return 1;
