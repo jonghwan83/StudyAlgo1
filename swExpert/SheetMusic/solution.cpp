@@ -33,8 +33,6 @@ public:
     int tone[2][4];
     int beat[2][4];
     bool isMerged;
-    int candidate[MAXN];
-    int size;
 
     void push_tone(int mTone[2][4]) {
         for (int i = 0; i < 2; i++) {
@@ -74,6 +72,12 @@ public:
 
 Motive motives[MAXN];
 LinkedList sheet[MAXN];
+int hashTone[2][10000][MAXN];
+int hashSize[2][10000];
+
+int beat2key(int beat[4]) {
+    return beat[0] * 1000 + beat[1] * 100 + beat[2] * 10 + beat[3];
+}
 
 void connect(int idx1, int idx2) {
     sheet[idx1].tail->next = sheet[idx2].head;
@@ -98,6 +102,11 @@ bool compare(int idx1, int idx2) {
 void compose(int N, int mTone[MAXN][2][4], int mBeat[MAXN][2][4], int mAns[MAXN])
 {
     mAns[0] = 0;
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 10000; j++) {
+            hashSize[i][j] = 0;
+        }
+    }
 
     Queue queue;
     int second = -1;
@@ -110,6 +119,14 @@ void compose(int N, int mTone[MAXN][2][4], int mBeat[MAXN][2][4], int mAns[MAXN]
         sheet[i] = LinkedList();
         sheet[i].init(i);
 
+        int key0 = beat2key(mBeat[i][0]);
+        hashTone[0][key0][hashSize[0][key0]] = i;
+        hashSize[0][key0]++;
+
+        int key1 = beat2key(mBeat[i][1]);
+        hashTone[1][key1][hashSize[1][key1]] = i;
+        hashSize[1][key1]++;
+
         if (i != 0) { queue.push(i); }
     }
 
@@ -121,10 +138,15 @@ void compose(int N, int mTone[MAXN][2][4], int mBeat[MAXN][2][4], int mAns[MAXN]
 
         int cnt = 0;
         int cIdx = -1;
-        for (int i = queue.st; i < queue.ed; i++) {
-            if (motives[queue.arr[i]].isMerged) { continue; }
-            if (compare(sheet[curr].tail->idx, sheet[queue.arr[i]].head->idx)) {
-                cIdx = queue.arr[i];
+
+        int key = beat2key(motives[sheet[curr].tail->idx].beat[1]);
+
+        for (int i = 0; i < hashSize[0][key]; i++) {
+            int k = hashTone[0][key][i];
+            if (curr == k) { continue; }
+            if (motives[k].isMerged) { continue; }
+            if (compare(sheet[curr].tail->idx, sheet[k].head->idx)) {
+                cIdx = k;
                 cnt++;
                 if (cnt > 1) { break; }
             }
