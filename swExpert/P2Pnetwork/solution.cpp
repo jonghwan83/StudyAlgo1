@@ -4,227 +4,206 @@
 using namespace std;
 
 #define MAXNODE 201
-#define MAXSEARCH 5001
+#define MAXREQS 5001
 
-class HeapNode {
+class File {
 public:
-    int distance;
+    string name;
+    int filesize;
+};
+
+int fIdx;
+File files[MAXREQS];
+
+class Node {
+public:
+    int dist;
     int idx;
 };
 
-class Heap {
+class Queue {
 public:
-    HeapNode arr[MAXNODE];
-    int length;
+    Node arr[MAXNODE];
+    int front, back, length;
 
-    void init() { length = 0; }
-
-    bool compare(int parent, int child) {
-        if (arr[parent].distance > arr[child].distance) { return true; }
-        if (arr[parent].distance == arr[child].distance && arr[parent].idx > arr[child].idx) { return true; }
-        return false;
+    void init() {
+        front = 0;
+        back = 0;
+        length = 0;
     }
 
-    void push(int dist, int i) {
-        HeapNode last = HeapNode();
-        last.distance = dist; last.idx = i;
+    void push(int i, int d) {
+        Node last = Node();
+        last.dist = d; last.idx = i;
+        length++;
+        arr[back++] = last;
+    }
 
-        int idx = length;
-        arr[length++] = last;
-
-        while ((idx - 1) / 2 >= 0 && compare((idx - 1) / 2, idx)) {
-            HeapNode temp = arr[idx];
-            arr[idx] = arr[(idx - 1) / 2];
-            arr[(idx - 1) / 2] = temp;
-            idx = (idx - 1) / 2;
-        }
+    Node pop() {
+        length--;
+        return arr[front++];
     }
 };
 
 class User {
 public:
-    int next[MAXNODE];
+    int adjacent[MAXNODE];
     int length;
-    int files;
+    bool files[MAXREQS];
+    int nFiles;
+    int prev;
 
     void init() {
         length = 0;
-        files = 0;
-    }
+        nFiles = 0;
+        prev = -1;
 
-    void push_next(int a) {
-        next[length++] = a;
-    }
-};
-
-class Sharing {
-public:
-    string file;
-    int filesize;
-    int users[MAXNODE];
-    int length;
-
-    void init() {
-        length = 0;
-    }
-
-    void push_user(int a) {
-        users[length++] = a;
-    }
-
-    bool isDuplicated(int a) {
-        for (int i = 0; i < length; i++) {
-            if (a == users[i]) { return true; }
+        for (int i = 0; i < MAXREQS; i++) {
+            files[i] = false;
         }
-        return false;
+    }
+
+    void push_adjacent(int a) {
+        adjacent[length++] = a;
+    }
+
+    void add_file(int idx) {
+        if (!files[idx]) {
+            files[idx] = true;
+            nFiles++;
+        }
     }
 };
 
 class Req {
 public:
-    int route[MAXNODE];
+    int routes[MAXNODE];
     int length;
-    int sharedIdx;
     int requestUser;
+    int sharedIdx;
 
-    void init() { length = 0; }
+    void init() {
+        length = 0;
+    }
 };
 
-User users[MAXNODE];
+Req reqs[MAXREQS];
 int bandwidth[MAXNODE][MAXNODE];
-int used[MAXNODE][MAXNODE];
-Heap pQueue;
-int routes[MAXNODE];
+User users[MAXNODE];
+unordered_map<string, int> hashWord;
 
 int visited[MAXNODE];
-int nDfs;
-bool escape;
-int dist;
-
-unordered_map<string, int> hashFile;
-Sharing shared[MAXSEARCH];
-int sIdx;
-
-Req reqs[MAXSEARCH];
-
-void getDistance(int st, int ed, int d, int mFilesize) {
-    if (st == ed) {
-        dist = d;
-        escape = true;
-        routes[d] = ed;
-        return;
-    }
-
-    routes[d] = st;
-
-    for (int i = 0; i < users[st].length; i++) {
-        if (escape) { return; }
-
-        if (visited[users[st].next[i]] < nDfs &&
-            bandwidth[st][users[st].next[i]] - used[st][users[st].next[i]] >= mFilesize) {
-            visited[users[st].next[i]] = nDfs;
-            getDistance(users[st].next[i], ed, d + 1, mFilesize);
-        }
-    }
-
-    return;
-}
+int nBfs;
+Queue queue;
 
 void init(int N, int mUID1[], int mUID2[], int mBandwidth[])
 {
-    for (int i = 1; i <= N; i++) {
+    hashWord.clear();
+    nBfs = 1;
+    fIdx = 0;
+
+    for (int i = 0; i < MAXNODE; i++) {
         users[i].init();
         visited[i] = 0;
-
-        for (int j = 0; j <= N; j++) {
-            used[i][j] = 0;
-        }
     }
-    nDfs = 1;
 
     for (int i = 0; i < N; i++) {
-        users[mUID1[i]].push_next(mUID2[i]);
-        users[mUID2[i]].push_next(mUID1[i]);
+        users[mUID1[i]].push_adjacent(mUID2[i]);
+        users[mUID2[i]].push_adjacent(mUID1[i]);
+    }
 
+    for (int i = 0; i < N; i++) {
         bandwidth[mUID1[i]][mUID2[i]] = mBandwidth[i];
         bandwidth[mUID2[i]][mUID1[i]] = mBandwidth[i];
     }
-
-    sIdx = 0;
-    hashFile.clear();
 }
 
 int share(int mUID, char mFilename[], int mFilesize)
 {
-    unordered_map<string, int>::iterator itr = hashFile.find(mFilename);
-    if (itr != hashFile.end()) {
-        if (shared[itr->second].isDuplicated(mUID)) { return users[mUID].files; }
+    unordered_map<string, int>::iterator itr = hashWord.find(mFilename);
+    if (itr == hashWord.end()) {
+        files[fIdx].name = mFilename;
+        files[fIdx].filesize = mFilesize;
 
-        shared[itr->second].push_user(mUID);
-        users[mUID].files++;
-        return users[mUID].files;
+        hashWord[mFilename] = fIdx;
+        users[mUID].add_file(fIdx);
+
+        fIdx++;
+        return users[mUID].nFiles;
     }
 
-    shared[sIdx].init();
-    hashFile[mFilename] = sIdx;
-    shared[sIdx].file = mFilename;
-    shared[sIdx].filesize = mFilesize;
-    shared[sIdx].push_user(mUID);
-    users[mUID].files++;
-
-    sIdx++;
-    return users[mUID].files;
+    users[mUID].add_file(itr->second);
+    return users[mUID].nFiles;
 }
 
 int request(int mUID, char mFilename[], int mTID)
 {
-    unordered_map<string, int>::iterator itr = hashFile.find(mFilename);
-    if (itr == hashFile.end()) { return -1; }
+    reqs[mTID].init();
+    queue.init();
 
-    pQueue.init();
+    unordered_map<string, int>::iterator itr = hashWord.find(mFilename);
+    if (itr == hashWord.end()) { return -1; }
 
-    for (int i = 0; i < shared[itr->second].length; i++) {
-        escape = false;
-        visited[mUID] = nDfs;
-        getDistance(mUID, shared[itr->second].users[i], 0, shared[itr->second].filesize);
-        nDfs++;
-        if (escape) {
-            pQueue.push(dist, shared[itr->second].users[i]);
+    queue.push(mUID, 0);
+    visited[mUID] = nBfs;
+    users[mUID].prev = -1;
+
+    Node curr;
+    Node dest;
+    dest.idx = -1; dest.dist = MAXREQS;
+
+    while (queue.length > 0) {
+        curr = queue.pop();
+        
+        if (users[curr.idx].files[itr->second]) {
+            if (curr.dist < dest.dist || (curr.dist == dest.dist && curr.idx < dest.idx)) {
+                dest = curr;
+            }
+        }
+
+        if (curr.dist > dest.dist) { continue; }
+        for (int i = 0; i < users[curr.idx].length; i++) {
+            if (visited[users[curr.idx].adjacent[i]] < nBfs &&
+                bandwidth[curr.idx][users[curr.idx].adjacent[i]] >= files[itr->second].filesize) {
+
+                users[users[curr.idx].adjacent[i]].prev = curr.idx;
+                visited[users[curr.idx].adjacent[i]] = nBfs;
+                queue.push(users[curr.idx].adjacent[i], curr.dist + 1);
+            }
         }
     }
 
-    if (pQueue.length == 0) { return -1; }
+    nBfs++;
 
-    escape = false;
-    visited[mUID] = nDfs;
-    getDistance(mUID, pQueue.arr[0].idx, 0, shared[itr->second].filesize);
-    nDfs++;
+    if (dest.idx == -1) { return -1; }
+    int ans = dest.idx;
+    curr = dest;
 
-    reqs[mTID].init();
-    reqs[mTID].sharedIdx = itr->second;
+    reqs[mTID].length = curr.dist + 1;
     reqs[mTID].requestUser = mUID;
-    reqs[mTID].length = dist + 1;
+    reqs[mTID].sharedIdx = itr->second;
+    while (users[curr.idx].prev > -1) {
+        reqs[mTID].routes[curr.dist] = curr.idx;
+        bandwidth[curr.idx][users[curr.idx].prev] -= files[itr->second].filesize;
+        bandwidth[users[curr.idx].prev][curr.idx] -= files[itr->second].filesize;
 
-    for (int i = 0; i < dist; i++) {
-        reqs[mTID].route[i] = routes[i];
-        used[routes[i]][routes[i + 1]] += shared[itr->second].filesize;
-        used[routes[i + 1]][routes[i]] += shared[itr->second].filesize;
+        curr.idx = users[curr.idx].prev;
+        curr.dist--;
     }
-    reqs[mTID].route[dist] = routes[dist];
+    reqs[mTID].routes[curr.dist] = curr.idx;
 
-    return pQueue.arr[0].idx;
+    return ans;
 }
 
 int complete(int mTID)
 {
-    for (int i = 0; i < reqs[mTID].length - 1; i++) {
-        used[reqs[mTID].route[i]][reqs[mTID].route[i + 1]] -= shared[reqs[mTID].sharedIdx].filesize;
-        used[reqs[mTID].route[i + 1]][reqs[mTID].route[i]] -= shared[reqs[mTID].sharedIdx].filesize;
+    for (int i = 0; i < reqs[mTID].length; i++) {
+        users[reqs[mTID].routes[i]].add_file(reqs[mTID].sharedIdx);
 
-        if (shared[reqs[mTID].sharedIdx].isDuplicated(reqs[mTID].route[i])) { continue; }
-        shared[reqs[mTID].sharedIdx].push_user(reqs[mTID].route[i]);
-        users[reqs[mTID].route[i]].files++;
+        if (i == reqs[mTID].length - 1) { continue; }
+        bandwidth[reqs[mTID].routes[i]][reqs[mTID].routes[i + 1]] += files[reqs[mTID].sharedIdx].filesize;
+        bandwidth[reqs[mTID].routes[i + 1]][reqs[mTID].routes[i]] += files[reqs[mTID].sharedIdx].filesize;
     }
 
-    return users[reqs[mTID].requestUser].files;
-}
+    return users[reqs[mTID].requestUser].nFiles;
+} 
