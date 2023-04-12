@@ -8,28 +8,6 @@ using namespace std;
 #define MAXSPECIES 50000
 #define MAXDISTANCE 5
 
-class Queue {
-public:
-	int arr[MAXSPECIES];
-	int st, ed, length;
-
-	void init() {
-		st = 0; 
-		ed = 0;
-		length = 0;
-	}
-
-	void push(int a) {
-		length++;
-		arr[ed++] = a;
-	}
-
-	int pop() {
-		length--;
-		return arr[st++];
-	}
-};
-
 class Species {
 public:
 	int parent;
