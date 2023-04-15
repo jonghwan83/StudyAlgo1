@@ -107,12 +107,12 @@ void init(int N, int mUID1[], int mUID2[], int mBandwidth[])
         visited[i] = 0;
     }
 
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N - 1; i++) {
         users[mUID1[i]].push_adjacent(mUID2[i]);
         users[mUID2[i]].push_adjacent(mUID1[i]);
     }
 
-    for (int i = 0; i < N; i++) {
+    for (int i = 0; i < N - 1; i++) {
         bandwidth[mUID1[i]][mUID2[i]] = mBandwidth[i];
         bandwidth[mUID2[i]][mUID1[i]] = mBandwidth[i];
     }
@@ -154,7 +154,7 @@ int request(int mUID, char mFilename[], int mTID)
 
     while (queue.length > 0) {
         curr = queue.pop();
-        
+
         if (users[curr.idx].files[itr->second]) {
             if (curr.dist < dest.dist || (curr.dist == dest.dist && curr.idx < dest.idx)) {
                 dest = curr;
@@ -206,4 +206,4 @@ int complete(int mTID)
     }
 
     return users[reqs[mTID].requestUser].nFiles;
-} 
+}
