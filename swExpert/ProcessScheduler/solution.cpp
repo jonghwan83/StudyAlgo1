@@ -4,8 +4,6 @@
 #define END_QUANTUM 2
 #define TOP_PRIO 3
 
-#include <iostream>
-
 class HeapNode {
 public:
     int time;
