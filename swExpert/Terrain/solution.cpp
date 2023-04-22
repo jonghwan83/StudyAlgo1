@@ -101,9 +101,8 @@ public:
     int row, col, subRow, subCol;
 };
 
-int interval, totalSize;
+int interval;
 Grid grid[MAXNK][MAXNK];
-int versions[MAX_MAP_SIZE][MAX_MAP_SIZE];
 Heap tops[MAXNK][MAXNK];
 
 Location coor2loc(int row, int col) {
@@ -119,7 +118,6 @@ Location coor2loc(int row, int col) {
 
 void init(int N, int K, int mHeight[][MAX_MAP_SIZE])
 {
-    totalSize = N;
     interval = K;
 
     for (int i = 0; i < N / K; i++) {
