@@ -2,7 +2,7 @@
 
 using namespace std;
 
-#define MAXROW 500
+#define MAXROW 300
 #define ALPHABET 26
 
 class Node {
@@ -76,7 +76,7 @@ public:
 Node* cursor;
 LinkedList memo[MAXROW];
 int rIdx;
-int width, height;
+int width;
 int row;
 int hashChar[MAXROW][ALPHABET];
 
@@ -100,7 +100,6 @@ void init(int H, int W, char mStr[])
 {
     rIdx = 0;
     width = W;
-    height = H;
 
     memo[rIdx++].init();
     for (int i = 0; i < strlen(mStr); i++) {
