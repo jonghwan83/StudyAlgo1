@@ -1,10 +1,5 @@
 extern void swapOrder(int mIndexA, int mIndexB);
 
-#include <math.h>
-#include <vector>
-
-using namespace std;
-
 #define MAXNUM 131072
 
 int answer[MAXNUM];
