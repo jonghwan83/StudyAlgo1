@@ -1,119 +1,150 @@
-#include <deque>
-#include <vector>
-
-#define MAXNODE 30000
 #define MAXAIRPORT 60
-#define INF 1000000
+#define MAXEDGE 30000
+#define INF 100000000
 
-using namespace std;
-
-class Airport {
+class Node {
 public:
-    int next[MAXNODE];
-    int price[MAXNODE];
-    int travelTime[MAXNODE];
-    int departTime[MAXNODE];
-    int nIdx;
+    int first;
+    int second;
+    int third;
+};
 
-    void clear() {
-        nIdx = 0;
+class Queue {
+public:
+    Node arr[MAXEDGE];
+    int st, ed;
+    int length;
+
+    void init() {
+        st = 0; ed = 0;
+        length = 0;
     }
 
-    void add(int mEndAirport, int mStartTime, int mTravelTime, int mPrice) {
-        next[nIdx] = mEndAirport;
-        departTime[nIdx] = mStartTime;
-        travelTime[nIdx] = mTravelTime;
-        price[nIdx] = mPrice;
-        nIdx++;
+    void push(int a, int b, int c) {
+        length++;
+        arr[ed].first = a;
+        arr[ed].second = b;
+        arr[ed].third = c;
+        ed++;
+    }
+
+    Node pop() {
+        length--;
+        return arr[st++];
     }
 };
 
+class Airport {
+public:
+    int length;
+    int next[MAXEDGE];
+    int price[MAXEDGE];
+    int start[MAXEDGE];
+    int time[MAXEDGE];
 
-int totalAirport;
+    void push(int nextAirport, int P, int D, int T) {
+        next[length] = nextAirport;
+        start[length] = D;
+        price[length] = P;
+        time[length] = T;
+        length++;
+    }
+};
+
 Airport airports[MAXAIRPORT];
-int minCost[MAXAIRPORT];
-int minTravel[MAXAIRPORT];
+int totalAirports;
 
-void getMinTravel(int mStartAirport, int mStartTime, int mEndAirport) {
-    for (int i = 0; i < totalAirport; i++) { minTravel[i] = INF; }
+int convetTime(int t) {
+    if (t >= 24) { return t - 24; }
+    if (t < 0) { return t + 24; }
+    return t;
+}
 
-    deque< vector<int> > queue;
+int getMinTravel(int st, int ed, int sTime) {
+    Queue queue;
+    queue.init();
 
-    queue.push_back({mStartAirport, mStartTime, 0});
-    minTravel[mStartAirport] = 0;
+    int minTravel[totalAirports];
+    for (int i = 0; i < totalAirports; i++) {
+        minTravel[i] = INF;
+    }
 
-    while (!queue.empty()) {
-        vector<int> curr = queue.front();
-        queue.pop_front();
+    queue.push(st, sTime, 0);
+    minTravel[st] = 0;
 
-        for (int i = 0; i < airports[curr[0]].nIdx; i++) {
-            int waitTime = airports[curr[0]].departTime[i] - curr[1];
-            if (waitTime < 0) { waitTime += 24; }
-            int t = waitTime + curr[2] + airports[curr[0]].travelTime[i];
-            
-            if (minTravel[airports[curr[0]].next[i]] > t) {
-                minTravel[airports[curr[0]].next[i]] = t;
-                int nextTime = airports[curr[0]].departTime[i] + airports[curr[0]].travelTime[i];
-                if (nextTime >= 24) { nextTime -= 24; }
-                if (airports[curr[0]].next[i] != mEndAirport) {
-                    queue.push_back({airports[curr[0]].next[i], nextTime, t});
+    while (queue.length > 0) {
+        Node curr = queue.pop();
+
+        for (int i = 0; i < airports[curr.first].length; i++) {
+            int dest = airports[curr.first].next[i];
+
+            int t_wait = convetTime(airports[curr.first].start[i] - curr.second);
+
+            if (curr.third + airports[curr.first].time[i] + t_wait < minTravel[dest]) {
+                minTravel[dest] = curr.third + airports[curr.first].time[i] + t_wait;
+                if (dest != ed) {
+                    queue.push(dest, convetTime(airports[curr.first].start[i] + airports[curr.first].time[i]), minTravel[dest]);
                 }
             }
         }
     }
+
+    return minTravel[ed];
 }
 
-void getMinCost(int mStartAirport, int mEndAirport) {
-    for (int i = 0; i < totalAirport; i++) {
+int getMinPrice(int st, int ed) {
+    Queue queue;
+    queue.init();
+
+    int minCost[totalAirports];
+
+    for (int i = 0; i < totalAirports; i++) {
         minCost[i] = INF;
     }
 
-    deque<int> queue;
+    queue.push(st, 0, 0);
+    minCost[st] = 0;
 
-    queue.push_back(mStartAirport);
-    minCost[mStartAirport] = 0;
+    while (queue.length > 0) {
+        Node curr = queue.pop();
 
-    while (!queue.empty()) {
-        int curr = queue.front();
-        queue.pop_front();
-        
-        for (int i = 0; i < airports[curr].nIdx; i++) {
-            if (minCost[airports[curr].next[i]] > minCost[curr] + airports[curr].price[i]) {
-                minCost[airports[curr].next[i]] = minCost[curr] + airports[curr].price[i];
-                if (airports[curr].next[i] != mEndAirport) {
-                    queue.push_back(airports[curr].next[i]);
+        for (int i = 0; i < airports[curr.first].length; i++) {
+            int dest = airports[curr.first].next[i];
+
+            if (minCost[curr.first] + airports[curr.first].price[i] < minCost[dest]) {
+                minCost[dest] = minCost[curr.first] + airports[curr.first].price[i];
+                if (dest != ed) {
+                    queue.push(dest, 0, 0);
                 }
             }
         }
     }
+
+    return minCost[ed];
 }
 
 void init(int N) {
-    totalAirport = N;
+    totalAirports = N;
+
     for (int i = 0; i < N; i++) {
-        airports[i].clear();
+        airports[i].length = 0;
     }
 }
 
 void add(int mStartAirport, int mEndAirport, int mStartTime, int mTravelTime, int mPrice) {
-    airports[mStartAirport].add(mEndAirport, mStartTime, mTravelTime, mPrice);
+    airports[mStartAirport].push(mEndAirport, mPrice, mStartTime, mTravelTime);
 }
 
 int minTravelTime(int mStartAirport, int mEndAirport, int mStartTime) {
-    getMinTravel(mStartAirport, mStartTime, mEndAirport);
+    int ans = getMinTravel(mStartAirport, mEndAirport, mStartTime);
 
-    if (minTravel[mEndAirport] < INF) {
-        return minTravel[mEndAirport];
-    }
-
-    return -1;
+    if (ans == INF) { return - 1; }
+    return ans;
 }
 
 int minPrice(int mStartAirport, int mEndAirport) {
-    getMinCost(mStartAirport, mEndAirport);
+    int ans = getMinPrice(mStartAirport, mEndAirport);
 
-    if (minCost[mEndAirport] < INF) {
-        return minCost[mEndAirport];
-    }
-    return -1;
+    if (ans == INF) { return -1; }
+    return ans;
 }

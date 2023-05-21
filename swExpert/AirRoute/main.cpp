@@ -88,6 +88,6 @@ int main()
         printf("#%d %d\n", tc, score);
     }
 
-    printf("RESULT : %ld ms\n", (clock() - start) / (CLOCKS_PER_SEC / 1000));
+    printf("elapsed : %f\n", (float) (clock() - start) / CLOCKS_PER_SEC);
     return 0;
 }
