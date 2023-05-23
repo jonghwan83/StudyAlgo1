@@ -39,25 +39,24 @@ unordered_map<string, int> hashMicrobe;
 Grid grid[SUBSET + 1];
 
 int commonAncestor;
-int visited[MAXMICROBE];
-int nVisited;
 
-void getLowestCommon(int idx) {
-    if (idx == 0) {
+
+void getLowestCommon(int idx1, int idx2) {
+    if (idx1 == 0 || idx2 == 0) {
         commonAncestor = 0;
         return;
     }
-
-    if (visited[idx] < nVisited) {
-        visited[idx] = nVisited;
-    }
-
-    else {
-        commonAncestor = idx;
+    if (idx1 == idx2) {
+        commonAncestor = idx1;
         return;
     }
 
-    getLowestCommon(microbes[idx].parent);
+    if (microbes[idx1].dist > microbes[idx2].dist) {
+        getLowestCommon(microbes[idx1].parent, idx2);
+    }
+    else {
+        getLowestCommon(idx1, microbes[idx2].parent);
+    }
 }
 
 void addGrid(int mFirstDay, int mLastDay) {
@@ -84,7 +83,6 @@ void addGrid(int mFirstDay, int mLastDay) {
 void init(char mAncestor[], int mLastday)
 
 {
-    nVisited = 0;
     hashMicrobe.clear();
 
     mIdx = 0;
@@ -94,7 +92,6 @@ void init(char mAncestor[], int mLastday)
     microbes[mIdx].parent = -1;
 
     hashMicrobe[mAncestor] = mIdx;
-    visited[mIdx] = 0;
 
     mIdx++;
 
@@ -103,6 +100,7 @@ void init(char mAncestor[], int mLastday)
     }
 
     addGrid(0, mLastday);
+
 
     return;
 }
@@ -119,8 +117,6 @@ int add(char mName[], char mParent[], int mFirstday, int mLastday)
     microbes[mIdx].parent = itr->second;
     microbes[mIdx].dist = microbes[itr->second].dist + 1;
 
-    visited[mIdx] = 0;
-
     mIdx++;
 
     addGrid(mFirstday, mLastday);
@@ -135,13 +131,12 @@ int distance(char mName1[], char mName2[])
     unordered_map<string, int>::iterator itr1 = hashMicrobe.find(mName1);
     unordered_map<string, int>::iterator itr2 = hashMicrobe.find(mName2);
 
-    nVisited++;
+    getLowestCommon(itr1->second, itr2->second);
 
-    getLowestCommon(itr1->second);
-    getLowestCommon(itr2->second);
 
     return microbes[itr1->second].dist + microbes[itr2->second].dist - 2 * microbes[commonAncestor].dist;
 }
+
 
 
 int count(int mDay)
