@@ -1,15 +1,27 @@
 #ifndef _CRT_SECURE_NO_WARNINGS
+
 #define _CRT_SECURE_NO_WARNINGS
+
 #endif
+
+
 
 #include <stdio.h>
 #include <time.h>
 
+
 #define CMD_INIT 100
+
 #define CMD_ADD_SEQ 200
+
 #define CMD_SEARCH_SEQ 300
+
 #define CMD_ERASE_SEQ 400
+
 #define CMD_CHANGE_BASE 500
+
+
+
 #define MAXL 61
 
 
@@ -151,6 +163,7 @@ static bool run()
 
 
 int main()
+
 {
     clock_t start, end;
     start = clock();
@@ -158,18 +171,28 @@ int main()
     setbuf(stdout, NULL);
 
     freopen("sample_input.txt", "r", stdin);
+
+
+
     int TC, MARK;
 
     scanf("%d %d", &TC, &MARK);
 
+
+
     for (int tc = 1; tc <= TC; ++tc)
+
     {
+
         int score = run() ? MARK : 0;
+
         printf("#%d %d\n", tc, score);
+
     }
 
     end = clock() - start;
-    printf("elapsed: %f\n", (float) end / CLOCKS_PER_SEC);
+    printf("elapsed: %f\n", (float)end / CLOCKS_PER_SEC);
 
     return 0;
+
 }
