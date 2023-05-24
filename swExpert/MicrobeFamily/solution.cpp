@@ -1,11 +1,11 @@
-#include <unordered_map>
 #include <cstring>
-#include <string>
 
 using namespace std;
 
 #define MAXMICROBE 12001
 #define SUBSET 1000
+#define TABLESIZE 4096
+
 
 class Microbe {
 public:
@@ -33,9 +33,61 @@ public:
     }
 };
 
+int char2key(const char *str){
+    unsigned long hash = 5381;
+    int c;
+ 
+    while (c = *str++)
+    {
+        hash = ((hash << 5) + hash) + c;
+    }
+    return hash % TABLESIZE;
+}
+
+class Node {
+public:
+    char name[12];
+    int data;
+    Node* next;
+};
+
+Node* hashTable[TABLESIZE];
+
+void initHash() {
+    for (int i = 0; i < TABLESIZE; i++) {
+        hashTable[i] = nullptr;
+    }
+}
+
+void addHash(char mName[], int idx) {
+    int key = char2key(mName);
+
+    Node* node = new Node();
+    node->data = idx;
+    strcpy(node->name, mName);
+
+    node->next = hashTable[key];
+    hashTable[key] = node;
+}
+
+int findHash(char mName[]) {
+    int key = char2key(mName);
+
+    Node* node = hashTable[key];
+
+    while (node != nullptr) {
+        if (strcmp(node->name, mName) == 0) {
+            return node->data;
+        }
+        node = node->next;
+    }
+
+    return -1;
+}
+
+
 int mIdx;
 Microbe microbes[MAXMICROBE];
-unordered_map<string, int> hashMicrobe;
 Grid grid[SUBSET + 1];
 
 int commonAncestor;
@@ -81,9 +133,8 @@ void addGrid(int mFirstDay, int mLastDay) {
 
 
 void init(char mAncestor[], int mLastday)
-
 {
-    hashMicrobe.clear();
+    initHash();
 
     mIdx = 0;
 
@@ -91,7 +142,7 @@ void init(char mAncestor[], int mLastday)
     microbes[mIdx].dist = 0;
     microbes[mIdx].parent = -1;
 
-    hashMicrobe[mAncestor] = mIdx;
+    addHash(mAncestor, 0);
 
     mIdx++;
 
@@ -109,13 +160,13 @@ void init(char mAncestor[], int mLastday)
 
 int add(char mName[], char mParent[], int mFirstday, int mLastday)
 {
-    hashMicrobe[mName] = mIdx;
+    addHash(mName, mIdx);
     
-    unordered_map<string, int>::iterator itr = hashMicrobe.find(mParent);
+    int parent = findHash(mParent);
 
     strcpy(microbes[mIdx].name, mName);
-    microbes[mIdx].parent = itr->second;
-    microbes[mIdx].dist = microbes[itr->second].dist + 1;
+    microbes[mIdx].parent = parent;
+    microbes[mIdx].dist = microbes[parent].dist + 1;
 
     mIdx++;
 
@@ -128,13 +179,13 @@ int add(char mName[], char mParent[], int mFirstday, int mLastday)
 
 int distance(char mName1[], char mName2[])
 {
-    unordered_map<string, int>::iterator itr1 = hashMicrobe.find(mName1);
-    unordered_map<string, int>::iterator itr2 = hashMicrobe.find(mName2);
+    int idx1 = findHash(mName1);
+    int idx2 = findHash(mName2);
 
-    getLowestCommon(itr1->second, itr2->second);
+    getLowestCommon(idx1, idx2);
 
 
-    return microbes[itr1->second].dist + microbes[itr2->second].dist - 2 * microbes[commonAncestor].dist;
+    return microbes[idx1].dist + microbes[idx2].dist - 2 * microbes[commonAncestor].dist;
 }
 
 
