@@ -1,193 +1,283 @@
-#include <unordered_map>
-
-#define MAXCIVILIZATION 60000
-#define MAXGRID 1000
-
-using namespace std;
+#define MAXCIVIL 30000
+#define MAXN 1000
 
 class Node {
 public:
-	int row;
-	int col;
-	Node* next;
+    int r;
+    int c;
+
+    Node* next;
 };
 
 class LinkedList {
 public:
-	bool isRemoved;
-	int id;
-	Node* head;
-	Node* tail;
-	int length;
+    int id;
+    bool isRemoved;
+    int length;
+    Node* head;
+    Node* tail;
 
-	LinkedList() {
-		isRemoved = false;
-		id = -1;
-		length = 0;
-		head = nullptr;
-		tail = nullptr;
-	}
+    void init() {
+        id = -1;
+        isRemoved = false;
+        length = 0;
+        head = nullptr;
+        tail = nullptr;
+    }
 
-	void clear() {
-		isRemoved = false;
-		id = -1;
-		length = 0;
-		head = nullptr;
-		tail = nullptr;
-	}
+    void push(int row, int col) {
+        Node* node = new Node();
+        node->r = row; node->c = col;
 
-	void addNode(int r, int c) {
-		Node* newNode = new Node();
-		newNode->row = r;
-		newNode->col = c;
+        node->next = head;
+        head = node;
+        if (!tail) { tail = node; }
+        length++;
+    }
+};
 
-		newNode->next = head;
-		if (!tail) { tail = newNode; }
-		head = newNode;
+struct Location {
+    int idx;
+    int i;
+};
 
-		length++;
-	}
+class HashChain {
+public:
+    int length[MAXN];
+    int id[MAXN][MAXCIVIL];
+    int idx[MAXN][MAXCIVIL];
+
+    void init() {
+        for (int i = 0; i < MAXN; i++) {
+            length[i] = 0;
+        }
+    }
+
+    void push(int mID, int mIdx) {
+        int key = mID % MAXN;
+        id[key][length[key]] = mID;
+        idx[key][length[key]] = mIdx;
+
+        length[key]++;
+    }
+
+    Location find(int mID) {
+        Location ans;
+        ans.idx = -1; ans.i = -1;
+
+        int key = mID % MAXN;
+        for (int i = 0; i < length[key]; i++) {
+            if (id[key][i] == mID) {
+                ans.idx = idx[key][i];
+                ans.i = i;
+                return ans;
+            }
+        }
+
+        return ans;
+    }
 };
 
 
+int gridSize;
+HashChain hashIdx;
+LinkedList civilization[MAXCIVIL];
+int grid[MAXN][MAXN];
+int cIdx;
+
 int drows[4] = { -1, 1, 0, 0 };
 int dcols[4] = { 0, 0, -1, 1 };
-int totalGrid, cIdx;
-LinkedList civilization[MAXCIVILIZATION];
-int grid[MAXGRID][MAXGRID];
-unordered_map<int, int> hashCivilization;
 
-void assembleLink(int cIdx1, int cIdx2) {
-	Node* cNode = civilization[cIdx2].head;
-	while (cNode) {
-		grid[cNode->row][cNode->col] = cIdx1;
-		cNode = cNode->next;
-	}
+void assembleLink(int idx1, int idx2) {
+    Node* node = civilization[idx2].head;
 
-	civilization[cIdx1].tail->next = civilization[cIdx2].head;
-	civilization[cIdx1].tail = civilization[cIdx2].tail;
-	civilization[cIdx1].length += civilization[cIdx2].length;
+    while (node) {
+        grid[node->r][node->c] = idx1;
+        node = node->next;
+    }
 
-	civilization[cIdx2].isRemoved = true;
+    civilization[idx1].tail->next = civilization[idx2].head;
+    civilization[idx1].tail = civilization[idx2].tail;
+    civilization[idx1].length += civilization[idx2].length;
+
+    civilization[idx2].length = 0;
+    civilization[idx2].head = nullptr;
+    civilization[idx2].tail = nullptr;
 }
 
-int checkNeighbor(int r, int c) {
-	int dr, dc;
-	int neighbors[4][2];
-	int nIdx = 0;
-	for (int i = 0; i < 4; i++) {
-		dr = r + drows[i];
-		dc = c + dcols[i];
+int getNeighbor(int r, int c) {
+    int dr, dc;
 
-		bool newFlag = true;
+    struct Neighbor {
+        int idx[4];
+        int cnt[4];
+        int length;
 
-		if (0 < dr && dr < totalGrid && 0 < dc && dc < totalGrid) {
-			if (grid[dr][dc] > -1 && !civilization[grid[dr][dc]].isRemoved) {
-				if (nIdx) {
-					for (int k = 0; k < nIdx; k++) {
-						if (neighbors[k][0] == grid[dr][dc]) { 
-							neighbors[k][1]++;
-							newFlag = false;
-							break;
-						}
-					}
-					if (newFlag) {
-						neighbors[nIdx][0] = grid[dr][dc];
-						neighbors[nIdx][1] = 1;
-						nIdx++;
-					}
-				}
-				else {
-					neighbors[nIdx][0] = grid[dr][dc];
-					neighbors[nIdx][1] = 1;
-					nIdx++;
-				}
-			}
-		}
-	}
+        Neighbor() { length = 0; }
 
-	int ans = 0;
-	int numAns = 0;
-	if (nIdx) {
-		for (int i = 0; i < nIdx; i++) {
-			if (neighbors[i][1] > numAns) {
-				ans = neighbors[i][0];
-				numAns = neighbors[i][1];
-			}
-			else if (neighbors[i][1] == numAns && civilization[ans].id > civilization[neighbors[i][0]].id) {
-				ans = neighbors[i][0];
-			}
-		}
-		return ans;
-	}
-	return -1;
-	
+        int isInclusive(int mID) {
+            for (int i = 0; i < length; i++) {
+                if (idx[i] == mID) { return i; }
+            }
+            return -1;
+        }
+    };
+
+    Neighbor neighbors;
+
+    for (int i = 0; i < 4; i++) {
+        dr = r + drows[i];
+        dc = c + dcols[i];
+
+        if (dr < 0 || dc < 0) { continue; }
+        if (dr >= gridSize || dc >= gridSize) { continue; }
+
+        if (grid[dr][dc] > -1) {
+            int idx = neighbors.isInclusive(grid[dr][dc]);
+            if (idx > -1) {
+                neighbors.cnt[idx]++;
+            }
+            else {
+                neighbors.idx[neighbors.length] = grid[dr][dc];
+                neighbors.cnt[neighbors.length] = 1;
+                neighbors.length++;
+            }
+        }
+    }
+
+    int neighbor = MAXCIVIL + 1;
+    int count = 0;
+
+    for (int i = 0; i < neighbors.length; i++) {
+        if (neighbors.cnt[i] > count) {
+            count = neighbors.cnt[i];
+            neighbor = neighbors.idx[i];
+        }
+        else if (count == neighbors.cnt[i] && civilization[neighbors.idx[i]].id < civilization[neighbor].id) {
+            neighbor = neighbors.idx[i];
+        }
+    }
+
+    if (neighbor == MAXCIVIL + 1) { return -1; }
+
+    return neighbor;
 }
 
 void init(int N) {
-	totalGrid = N + 1;
-	cIdx = 1;
+    hashIdx.init();
 
-	for (int i = 0; i < totalGrid; i++) {
-		for (int j = 0; j < totalGrid; j++) {
-			grid[i][j] = -1;
-		}
-	}
+    cIdx = 0;
 
-	hashCivilization.clear();
+    gridSize = N;
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            grid[i][j] = -1;
+        }
+    }
 }
 
 int newCivilization(int r, int c, int mID) {
-	int neighbor = checkNeighbor(r, c);
-	if (neighbor == -1) {
-		civilization[cIdx].clear();
+    r--; c--;
 
-		grid[r][c] = cIdx;
-		hashCivilization[mID] = cIdx;
+    int neighbor = getNeighbor(r, c);
 
-		civilization[cIdx].id = mID;
-		civilization[cIdx].addNode(r, c);
-		
-		cIdx++;
-	}
-	else {
-		grid[r][c] = neighbor;
-		civilization[neighbor].addNode(r, c);
-	}
-	return civilization[grid[r][c]].id;
+    if (neighbor == -1) {
+        int idx = hashIdx.find(mID).idx;
+
+        if (idx == -1) {
+            civilization[cIdx].init();
+
+            civilization[cIdx].id = mID;
+            civilization[cIdx].isRemoved = false;
+
+            civilization[cIdx].push(r, c);
+            grid[r][c] = cIdx;
+
+            hashIdx.push(mID, cIdx);
+
+            cIdx++;
+        }
+        else {
+            civilization[idx].isRemoved = false;
+
+            civilization[idx].push(r, c);
+            grid[r][c] = idx;
+        }
+
+        return mID;
+    }
+
+    civilization[neighbor].push(r, c);
+    grid[r][c] = neighbor;
+
+    return civilization[neighbor].id;
 }
 
 int removeCivilization(int mID) {
-	int cIdx = hashCivilization[mID];
-	int ans = 0;
-	if (!civilization[cIdx].isRemoved) {
-		ans += civilization[cIdx].length;
-		civilization[cIdx].isRemoved = true;
-	}
-	return ans;
+    int idx = hashIdx.find(mID).idx;
+
+    if (idx == -1) { return 0; }
+    if (civilization[idx].isRemoved) { return 0; }
+
+    civilization[idx].isRemoved = true;
+    int ans = civilization[idx].length;
+
+    Node* node = civilization[idx].head;
+
+    while (node) {
+        grid[node->r][node->c] = -1;
+        node = node->next;
+    }
+
+    civilization[idx].length = 0;
+    civilization[idx].head = nullptr;
+    civilization[idx].tail = nullptr;
+
+    return ans;
 }
 
 int getCivilization(int r, int c) {
-	int cIdx = grid[r][c];
-	if (cIdx == -1) { return 0; }
-	if (!civilization[cIdx].isRemoved) {
-		return civilization[cIdx].id;
-	}
-	return 0;
+    r--; c--;
+    int idx = grid[r][c];
+
+    if (idx == -1) { return 0; }
+    if (civilization[idx].isRemoved) { return 0; }
+
+    return civilization[idx].id;
 }
 
 int getCivilizationArea(int mID) {
-	int cIdx = hashCivilization[mID];
-	if (!civilization[cIdx].isRemoved) {
-		return civilization[cIdx].length;
-	}
-	return 0;
+    int idx = hashIdx.find(mID).idx;
+
+    if (idx == -1) { return 0; }
+    if (civilization[idx].isRemoved) { return 0; }
+
+    return civilization[idx].length;
 }
 
 int mergeCivilization(int mID1, int mID2) {
-	int cIdx1 = hashCivilization[mID1];
-	int cIdx2 = hashCivilization[mID2];
-	assembleLink(cIdx1, cIdx2);
+    Location idx1 = hashIdx.find(mID1);
+    Location idx2 = hashIdx.find(mID2);
 
-	return civilization[cIdx1].length;
+    if (civilization[idx2.idx].length > civilization[idx1.idx].length) {
+        assembleLink(idx2.idx, idx1.idx);
+
+        int key1 = mID1 % MAXN;
+        int key2 = mID2 % MAXN;
+
+        hashIdx.idx[key1][idx1.i] = idx2.idx;
+        hashIdx.idx[key2][idx2.i] = idx1.idx;
+
+        int temp = civilization[idx2.idx].id;
+        civilization[idx2.idx].id = civilization[idx1.idx].id;
+        civilization[idx1.idx].id = temp;
+
+        return civilization[idx2.idx].length;
+    }
+    else {
+        assembleLink(idx1.idx, idx2.idx);
+        return civilization[idx1.idx].length;
+    }
 }
+
