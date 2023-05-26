@@ -11,7 +11,7 @@ public:
 class Heap {
 public:
     int length;
-    HeapNode arr[MAXRECT];
+    HeapNode arr[MAXRECT / 4];
 
     void init() { length = 0; }
 
@@ -81,7 +81,7 @@ public:
     int z;
     bool isRemoved;
 
-    void push(int mID, int mX, int mY, int mHeight, int mWidth, int zaxis) {
+    void push(int mID, int mY, int mX, int mHeight, int mWidth, int zaxis) {
         id = mID;
         p1.x = mX;
         p1.y = mY;
@@ -155,7 +155,7 @@ void addRect(int mID, int mY, int mX, int mHeight, int mWidth)
 
     hashIdx[mID] = idx;
 
-    rects[idx].push(mID, mX, mY, mHeight, mWidth, zAxis++);
+    rects[idx].push(mID, mY, mX, mHeight, mWidth, zAxis++);
 
     int row1 = rects[idx].p1.y / PERIMETER;
     int row2 = rects[idx].p2.y / PERIMETER;
@@ -298,7 +298,7 @@ void selectAndMove(int y1, int x1, int y2, int x2)
     int mHeight = rects[cIdx].p2.y - rects[cIdx].p1.y + 1;
     int mWidth = rects[cIdx].p2.x - rects[cIdx].p1.x + 1;
 
-    rects[idx].push(rects[cIdx].id, x2, y2, mHeight, mWidth, rects[cIdx].z);
+    rects[idx].push(rects[cIdx].id, y2, x2, mHeight, mWidth, rects[cIdx].z);
 
     hashIdx[mID] = idx;
 
