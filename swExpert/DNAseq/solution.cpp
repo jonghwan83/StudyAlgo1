@@ -1,173 +1,78 @@
 #include <cstring>
 
-#define MAXGENE 20000
+#define MAXDNA 25000
 #define MAXL 61
 #define TABLESIZE 4096
 
-class Gene {
+class DNA {
 public:
     int id;
-    char name[MAXL];
     bool isRemoved;
+    char sequence[MAXL];
 };
 
-
-int hash(char mSeq[], int n) {
-    unsigned long long hash = 5381;
+int char2key(char mSeq[], int n) {
+    unsigned long hash = 5381;
 
     for (int i = 0; i < n; i++) {
         hash = (((hash << 5) + hash) + mSeq[i]) % TABLESIZE;
     }
 
-    return hash % TABLESIZE;
+    return hash;
 }
 
-
-class NodeChar {
+class Node {
 public:
-    char data[MAXL];
     int idx;
-    NodeChar* next;
+    Node* next;
 };
 
-class NodeID {
+class LinkedList {
 public:
-    int id;
-    int idx;
-    NodeID* next;
-};
-
-class HashChain {
-public:
-    NodeChar* heads[TABLESIZE];
+    int length;
+    Node* head;
 
     void init() {
-        for (int i = 0; i < TABLESIZE; i++) {
-            heads[i] = nullptr;
-        }
+        length = 0;
+        head = nullptr;
     }
 
-    void push(int n, char mSeq[], int idx) {
-        int key = hash(mSeq, n);
+    void push(int a) {
+        Node* node = new Node();
+        node->idx = a;
 
-        NodeChar* node = new NodeChar();
-        node->idx = idx;
-        strcpy(node->data, mSeq);
-
-        node->next = heads[key];
-        heads[key] = node;
-    }
-
-    int find(int n, char mSeq[]) {
-        int key = hash(mSeq, n);
-
-        NodeChar* node = heads[key];
-
-        while (node) {
-            if (strcmp(mSeq, node->data) == 0) {
-                return node->idx;
-            }
-            node = node->next;
-        }
-
-        return -1;
+        node->next = head;
+        head = node;
+        length++;
     }
 };
 
-class HashChainID {
-public:
-    NodeID* heads[TABLESIZE];
+int min(int a, int b) {
+    if (a < b) { return a; }
+    return b;
+}
 
-    void init() {
-        for (int i = 0; i < TABLESIZE; i++) {
-            heads[i] = nullptr;
-        }
+bool compare(char a[], char b[]) {
+    int n = min(strlen(a), strlen(b));
+
+    for (int i = 0; i < n; i++) {
+        if (a[i] != b[i]) { return false;}
     }
 
-    void push(int id, int idx) {
-        int key = id % TABLESIZE;
-
-        NodeID* node = new NodeID();
-        node->id = id;
-        node->idx = idx;
-
-        node->next = heads[key];
-        heads[key] = node;
-    }
-
-    int find(int id) {
-        int key = id % TABLESIZE;
-
-        NodeID* node = heads[key];
-
-        while (node) {
-            if (node->id == id) {
-                return node->idx;
-            }
-            node = node->next;
-        }
-
-        return -1;
-    }
-};
-
-
-Gene genes[MAXGENE];
-HashChain hashSeq;
-HashChain hashSeq3;
-HashChainID hashID;
-
-int gIdx;
-
-void init()
-{
-    gIdx = 0;
-
-    hashSeq.init();
-    hashSeq3.init();
-    hashID.init();
+    return true;
 }
 
 
-int addSeq(int mID, int mLen, char mSeq[])
-{
-    int idx = hashID.find(mID);
-    if (idx > -1 && !genes[idx].isRemoved) {
-        return 0;
-    }
+int idx;
+DNA genes[MAXDNA];
+LinkedList hashSeq[TABLESIZE];
+LinkedList hashID[TABLESIZE];
+LinkedList hashSeq3[TABLESIZE];
 
-    idx = hashSeq.find(mLen, mSeq);
-    if (idx > -1 && !genes[idx].isRemoved) {
-        return 0;
-    }
+int findByID(int mID) {
+    int key = mID % TABLESIZE;
 
-
-    genes[gIdx].id = mID;
-    genes[gIdx].isRemoved = false;
-    strcpy(genes[gIdx].name, mSeq);
-
-    hashSeq.push(mLen, mSeq, gIdx);
-    hashSeq3.push(3, mSeq, gIdx);
-    hashID.push(mID, gIdx);
-
-    gIdx++;
-    return 1;
-}
-
-
-
-int searchSeq(int mLen, char mBegin[])
-{
-    char base[3];
-    for (int i = 0; i < 3; i++) {
-        base[i] = mBegin[i];
-    }
-
-    int ans = 0;
-    int id = 0;
-
-    int key = hash(base, 3);
-    NodeChar* node = hashSeq3.heads[key];
+    Node* node = hashID[key].head;
 
     while (node) {
         if (genes[node->idx].isRemoved) {
@@ -175,65 +80,164 @@ int searchSeq(int mLen, char mBegin[])
             continue;
         }
 
-        if (strlen(genes[node->idx].name) < mLen) {
+        if (genes[node->idx].id == mID) {
+            return node->idx;
+        }
+
+        node = node->next;
+    }
+
+    return -1;
+}
+
+int findBySeq(char mSeq[]) {
+    int key = char2key(mSeq, strlen(mSeq));
+
+    Node* node = hashSeq[key].head;
+
+    while (node) {
+        if (genes[node->idx].isRemoved) {
             node = node->next;
             continue;
         }
 
-        char temp[MAXL];
-        for (int i = 0; i < mLen; i++) {
-            temp[i] = genes[node->idx].name[i];
+        if (strcmp(mSeq, genes[node->idx].sequence) == 0) {
+            return node->idx;
         }
-        temp[mLen] = '\0';
 
-        if (strcmp(temp, mBegin) == 0) {
-            id = genes[node->idx].id;
-            ans++;
-        }
         node = node->next;
     }
 
-    if (ans == 0) { return -1; }
-    if (ans == 1) { return id; }
-    return ans;
+    return -1;
+}
+
+int findBySeq3(char mSeq[]) {
+    int key = char2key(mSeq, 3);
+
+    Node* node = hashSeq3[key].head;
+
+    while (node) {
+        if (genes[node->idx].isRemoved) {
+            node = node->next;
+            continue;
+        }
+
+        if (compare(mSeq, genes[node->idx].sequence)) {
+            return node->idx;
+        }
+
+        node = node->next;
+    }
+
+    return -1;
+}
+
+
+void init()
+{
+    idx = 0;
+
+    for (int i = 0; i < TABLESIZE; i++) {
+        hashSeq[i].init();
+        hashID[i].init();
+        hashSeq3[i].init();
+    }
 
 }
 
+
+int addSeq(int mID, int mLen, char mSeq[])
+{
+    int idxByID = findByID(mID);
+    int idxBySeq = findBySeq(mSeq);
+
+    if (idxByID != -1 || idxBySeq != -1) { return 0; }
+
+
+    genes[idx].id = mID;
+    genes[idx].isRemoved = false;
+    strcpy(genes[idx].sequence, mSeq);
+
+    int keySeq = char2key(mSeq, mLen);
+    int keySeq3 = char2key(mSeq, 3);
+    int keyID = mID % TABLESIZE;
+
+    hashSeq[keySeq].push(idx);
+    hashSeq3[keySeq3].push(idx);
+    hashID[keyID].push(idx);
+
+    idx++;
+    return 1;
+
+}
+
+
+int searchSeq(int mLen, char mBegin[])
+{
+    int key = char2key(mBegin, 3);
+
+    int cnt = 0;
+    int id = -1;
+
+    Node* node = hashSeq3[key].head;
+
+    while (node) {
+        if (genes[node->idx].isRemoved) {
+            node = node->next;
+            continue;
+        }
+
+        if (strlen(genes[node->idx].sequence) < mLen) {
+            node = node->next;
+            continue;
+        }
+
+        if (compare(mBegin, genes[node->idx].sequence)) {
+            id = genes[node->idx].id;
+            cnt++;
+        }
+
+        node = node->next;
+    }
+
+    if (cnt > 1) { return cnt; }
+    if (cnt == 1) { return id; }
+
+    return -1;
+}
 
 
 int eraseSeq(int mID)
 {
-    int idx = hashID.find(mID);
+    int idxByID = findByID(mID);
 
-    if (idx == -1) { return 0; }
-    if (genes[idx].isRemoved) { return 0; }
+    if (idxByID == -1) { return 0; }
+    if (genes[idxByID].isRemoved) { return 0; }
 
-    genes[idx].isRemoved = true;
+    genes[idxByID].isRemoved = true;
 
     return 1;
 }
-
-
 
 int changeBase(int mID, int mPos, char mBase)
 {
-    int idx = hashID.find(mID);
+    int idxByID = findByID(mID);
 
-    if (idx == -1) { return 0; }
-    if (genes[idx].isRemoved) { return 0; }
-    if (strlen(genes[idx].name) <= mPos) { return 0; }
-
-    if (genes[idx].name[mPos] == mBase) { return 0; }
+    if (idxByID == -1) { return 0; }
+    if (strlen(genes[idxByID].sequence) <= mPos) { return 0; }
+    if (genes[idxByID].sequence[mPos] == mBase) { return 0; }
 
     char temp[MAXL];
-    strcpy(temp, genes[idx].name);
+    strcpy(temp, genes[idxByID].sequence);
     temp[mPos] = mBase;
 
-    int tIdx = hashSeq.find((int) strlen(temp), temp);
-    if (tIdx > 0 && !genes[tIdx].isRemoved) { return 0; }
+    int tIdx = findBySeq(temp);
+    if (tIdx != -1) { return 0; }
 
-    genes[idx].isRemoved = true;
-    addSeq(genes[idx].id, (int) strlen(temp), temp);
+    genes[idxByID].isRemoved = true;
+
+    addSeq(genes[idxByID].id, strlen(temp), temp);
 
     return 1;
 }
+
