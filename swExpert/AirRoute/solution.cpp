@@ -9,30 +9,63 @@ public:
     int third;
 };
 
-class Queue {
+class Heap {
 public:
-    Node arr[MAXEDGE];
-    int st, ed;
     int length;
+    Node arr[MAXEDGE];
 
-    void init() {
-        st = 0; ed = 0;
-        length = 0;
+    void init() { length = 0; }
+
+    bool compare(int parent, int child) {
+        if (arr[parent].first > arr[child].first) { return true; }
+        return false;
     }
 
     void push(int a, int b, int c) {
-        length++;
-        arr[ed].first = a;
-        arr[ed].second = b;
-        arr[ed].third = c;
-        ed++;
+        Node last{};
+        last.first = a; last.second = b; last.third = c;
+
+        int idx = length;
+        arr[length++] = last;
+
+        while ((idx - 1) / 2 >= 0 && compare((idx - 1) / 2, idx)) {
+            Node temp = arr[idx];
+            arr[idx] = arr[(idx - 1) / 2];
+            arr[(idx - 1) / 2] = temp;
+            idx = (idx - 1) / 2;
+        }
     }
 
     Node pop() {
-        length--;
-        return arr[st++];
+        Node ans = arr[0];
+        arr[0] = arr[--length];
+
+        int idx = 0;
+        int left, right, child;
+
+        while (idx * 2 + 1 < length) {
+            left = idx * 2 + 1;
+            right = idx * 2 + 2;
+
+            if (right < length) {
+                if (compare(left, right)) { child = right; }
+                else { child = left; }
+            }
+            else { child = left; }
+
+            if (compare(idx, child)) {
+                Node temp = arr[idx];
+                arr[idx] = arr[child];
+                arr[child] = temp;
+                idx = child;
+            }
+            else { break; }
+        }
+
+        return ans;
     }
 };
+
 
 class Airport {
 public:
@@ -61,7 +94,7 @@ int convetTime(int t) {
 }
 
 int getMinTravel(int st, int ed, int sTime) {
-    Queue queue;
+    Heap queue;
     queue.init();
 
     int minTravel[totalAirports];
@@ -69,21 +102,23 @@ int getMinTravel(int st, int ed, int sTime) {
         minTravel[i] = INF;
     }
 
-    queue.push(st, sTime, 0);
+    queue.push(0, st, sTime);
     minTravel[st] = 0;
 
     while (queue.length > 0) {
         Node curr = queue.pop();
 
-        for (int i = 0; i < airports[curr.first].length; i++) {
-            int dest = airports[curr.first].next[i];
+        if (minTravel[curr.second] > curr.first) { continue; }
 
-            int t_wait = convetTime(airports[curr.first].start[i] - curr.second);
+        for (int i = 0; i < airports[curr.second].length; i++) {
+            int dest = airports[curr.second].next[i];
 
-            if (curr.third + airports[curr.first].time[i] + t_wait < minTravel[dest]) {
-                minTravel[dest] = curr.third + airports[curr.first].time[i] + t_wait;
+            int t_wait = convetTime(airports[curr.second].start[i] - curr.third);
+
+            if (curr.first + airports[curr.second].time[i] + t_wait < minTravel[dest]) {
+                minTravel[dest] = curr.first + airports[curr.second].time[i] + t_wait;
                 if (dest != ed) {
-                    queue.push(dest, convetTime(airports[curr.first].start[i] + airports[curr.first].time[i]), minTravel[dest]);
+                    queue.push(minTravel[dest], dest, convetTime(airports[curr.second].start[i] + airports[curr.second].time[i]));
                 }
             }
         }
@@ -92,8 +127,9 @@ int getMinTravel(int st, int ed, int sTime) {
     return minTravel[ed];
 }
 
+
 int getMinPrice(int st, int ed) {
-    Queue queue;
+    Heap queue;
     queue.init();
 
     int minCost[totalAirports];
@@ -102,19 +138,21 @@ int getMinPrice(int st, int ed) {
         minCost[i] = INF;
     }
 
-    queue.push(st, 0, 0);
+    queue.push(0, st, 0);
     minCost[st] = 0;
 
     while (queue.length > 0) {
         Node curr = queue.pop();
 
-        for (int i = 0; i < airports[curr.first].length; i++) {
-            int dest = airports[curr.first].next[i];
+        if (minCost[curr.second] < curr.first) { continue; }
 
-            if (minCost[curr.first] + airports[curr.first].price[i] < minCost[dest]) {
-                minCost[dest] = minCost[curr.first] + airports[curr.first].price[i];
+        for (int i = 0; i < airports[curr.second].length; i++) {
+            int dest = airports[curr.second].next[i];
+
+            if (minCost[curr.second] + airports[curr.second].price[i] < minCost[dest]) {
+                minCost[dest] = minCost[curr.second] + airports[curr.second].price[i];
                 if (dest != ed) {
-                    queue.push(dest, 0, 0);
+                    queue.push(minCost[dest], dest, 0);
                 }
             }
         }
@@ -122,6 +160,7 @@ int getMinPrice(int st, int ed) {
 
     return minCost[ed];
 }
+
 
 void init(int N) {
     totalAirports = N;
@@ -131,9 +170,11 @@ void init(int N) {
     }
 }
 
+
 void add(int mStartAirport, int mEndAirport, int mStartTime, int mTravelTime, int mPrice) {
     airports[mStartAirport].push(mEndAirport, mPrice, mStartTime, mTravelTime);
 }
+
 
 int minTravelTime(int mStartAirport, int mEndAirport, int mStartTime) {
     int ans = getMinTravel(mStartAirport, mEndAirport, mStartTime);
@@ -141,6 +182,7 @@ int minTravelTime(int mStartAirport, int mEndAirport, int mStartTime) {
     if (ans == INF) { return - 1; }
     return ans;
 }
+
 
 int minPrice(int mStartAirport, int mEndAirport) {
     int ans = getMinPrice(mStartAirport, mEndAirport);
