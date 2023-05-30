@@ -111,6 +111,20 @@ void getLowestCommon(int idx1, int idx2) {
     }
 }
 
+
+void LCA(int idx1, int idx2) {
+    while (idx1 != idx2) {
+        if (microbes[idx1].dist > microbes[idx2].dist) {
+            idx1 = microbes[idx1].parent;
+        }
+        else {
+            idx2 = microbes[idx2].parent;
+        }
+    }
+
+    commonAncestor = idx1;
+}
+
 void addGrid(int mFirstDay, int mLastDay) {
     int sIdx = mFirstDay / SUBSET;
     int eIdx = mLastDay / SUBSET;
@@ -182,7 +196,7 @@ int distance(char mName1[], char mName2[])
     int idx1 = findHash(mName1);
     int idx2 = findHash(mName2);
 
-    getLowestCommon(idx1, idx2);
+    LCA(idx1, idx2);
 
 
     return microbes[idx1].dist + microbes[idx2].dist - 2 * microbes[commonAncestor].dist;
