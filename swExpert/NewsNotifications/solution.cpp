@@ -105,7 +105,6 @@ public:
 
 class User {
 public:
-    int id;
     int resetTime;
     LinkedList channelIdx;
 
@@ -117,7 +116,6 @@ public:
 
 class Channel {
 public:
-    int id;
     int nUser;
     Heap newsIdx;
 
@@ -129,7 +127,6 @@ public:
 
 class News {
 public:
-    int id;
     int channelIdx;
     bool isRemoved;
 
@@ -190,8 +187,6 @@ void registerUser(int mTime, int mUID, int mNum, int mChannelIDs[])
 
         hashUser[uKey].push(mUID, uIdx, mTime);
 
-        users[uIdx].id = mUID;
-
         userIdx = uIdx;
 
         uIdx++;
@@ -205,9 +200,6 @@ void registerUser(int mTime, int mUID, int mNum, int mChannelIDs[])
             channels[cIdx].init();
 
             hashChannel[cKey].push(mChannelIDs[i], cIdx, mTime);
-
-
-            channels[cIdx].id = mChannelIDs[i];
 
             users[userIdx].channelIdx.push(mChannelIDs[i], cIdx, mTime);
             channels[cIdx].nUser++;
@@ -236,7 +228,7 @@ int offerNews(int mTime, int mNewsID, int mDelay, int mChannelID)
     int nKey = mNewsID % TABLESIZE;
 
     hashNews[nKey].push(mNewsID, nIdx, mTime);
-    news[nIdx].id = mNewsID;
+
     news[nIdx].channelIdx = channelIdx;
 
     nIdx++;
@@ -294,5 +286,4 @@ int checkUser(int mTime, int mUID, int mRetIDs[])
     users[userIdx].resetTime = mTime;
 
     return ans;
-
 }
