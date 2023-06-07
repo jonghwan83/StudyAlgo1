@@ -1,190 +1,234 @@
-#include <unordered_map>
-#include <deque>
-
-#define MAXGRID 200
-#define MAXBAR 300
+#define MAXID 1000000
+#define MAXN 200
+#define MAXSTICK 300
 #define MAXREGION 15000
-
-using namespace std;
 
 int drows[4] = { -1, 1, 0, 0 };
 int dcols[4] = { 0, 0, -1, 1 };
 
-class Bar {
+class Node {
 public:
-    bool isRemoved;
+    int row;
+    int col;
+};
+
+class Queue {
+public:
+    Node arr[MAXN * MAXN];
+    int length, st, ed;
+
+    void init() {
+        length = 0; st = 0; ed = 0;
+    }
+
+    void push(int r, int c) {
+        length++;
+        arr[ed].row = r; arr[ed].col = c;
+        ed++;
+    }
+
+    Node pop() {
+        length--;
+        return arr[st++];
+    }
+};
+
+
+class Stick {
+public:
     int id;
-    int length;
     int row;
     int col;
     int dir;
+    int length;
 };
 
 class Region {
 public:
-    bool isExist;
     int length;
+    bool isExist;
 
-    Region() {
+    void init() {
         length = 0;
-        isExist = false;
+        isExist = true;
     }
 };
 
-unordered_map<int, int> hashBar;
-int nGrid, barIdx, checkIdx, regionIdx, regionCnt;
-int checkMap[MAXGRID][MAXGRID];
-int regionMap[MAXGRID][MAXGRID];
-int grid[MAXGRID][MAXGRID];
 
-Bar bars[MAXBAR];
-deque< pair<int, int> > queue;
+int boardSize;
+int board[MAXN][MAXN];
+int regionMap[MAXN][MAXN];
+int bfsVisited[MAXN][MAXN];
+
 Region regions[MAXREGION];
+int regionIdx;
+int nBfs;
 
-bool incr;
+int sIdx;
+Stick sticks[MAXSTICK];
+int hashStick[MAXID];
 
-void init(int N) {
-    hashBar.clear();
-    barIdx = 0;
-    nGrid = N;
-    checkIdx = 1;
-    regionIdx = 0;
-    regions[regionIdx].length = 0;
-    regionCnt = 0;
+int regionCnt;
+bool isIncr;
 
+Queue queue;
+Queue q;
+
+
+void init(int N)
+{
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
-            grid[i][j] = 0;
-            checkMap[i][j] = 0;
+            board[i][j] = 0;
+            bfsVisited[i][j] = 0;
             regionMap[i][j] = 0;
         }
     }
+
+    boardSize = N;
+    sIdx = 0;
+    regionIdx = 1;
+    nBfs = 0;
+    regionCnt = 0;
 }
 
 void paintRegion(int idx, bool isRemoving) {
-    for (int i = 0; i < bars[idx].length; i++) {
-        int row = bars[idx].row + i * drows[bars[idx].dir];
-        int col = bars[idx].col + i * dcols[bars[idx].dir];
+    for (int i = 0; i < sticks[idx].length; i++) {
+        int r = sticks[idx].row + drows[sticks[idx].dir] * i;
+        int c = sticks[idx].col + dcols[sticks[idx].dir] * i;
 
+        
         if (isRemoving) {
-            grid[row][col]--;
-            if (grid[row][col] == 0 && checkMap[row][col] <= checkIdx) {
-                queue.push_back(make_pair(row, col));
-                checkMap[row][col] = checkIdx;
+            board[r][c]--;
+            if (board[r][c] == 0 && bfsVisited[r][c] < nBfs) {
+                queue.push(r, c);
+                bfsVisited[r][c] = nBfs;
             }
             continue;
         }
-
-        int dr, dc;
+        
         for (int k = 0; k < 4; k++) {
-            dr = row + drows[k];
-            dc = col + dcols[k];
+            int dr = r + drows[k];
+            int dc = c + dcols[k];
 
-            if (0 <= dr && dr < nGrid && 0 <= dc && dc < nGrid) {
-                if (grid[dr][dc] == 0 && checkMap[dr][dc] <= checkIdx) {
-                    queue.push_back(make_pair(dr, dc));
-                    checkMap[dr][dc] = checkIdx;
+            if (0 <= dr && dr < boardSize && 0 <= dc && dc < boardSize) {
+                if (board[dr][dc] == 0 && bfsVisited[dr][dc] < nBfs) {
+                    queue.push(dr, dc);
+                    bfsVisited[dr][dc] = nBfs;
+
                     if (regions[regionMap[dr][dc]].isExist) {
                         regions[regionMap[dr][dc]].isExist = false;
                         regionCnt--;
                     }
                 }
             }
+
         }
     }
 }
 
-void dfs(int row, int col, bool isRemoving) {
-    if (checkMap[row][col] == checkIdx) {
-        incr = false;
-        return;
+
+void bfs(int r, int c, bool isRemoving) {
+    q.init();
+
+    if (bfsVisited[r][c] < nBfs) {
+        q.push(r, c);
+        bfsVisited[r][c] = nBfs;
+
+        regions[regionIdx].init();
     }
 
-    if (isRemoving) {
-        if (regionMap[row][col] != regionIdx && regions[regionMap[row][col]].isExist) {
-            regions[regionMap[row][col]].isExist = false;
-            regionCnt--;
-        }
-    }
-    checkMap[row][col] = checkIdx;
-    regionMap[row][col] = regionIdx;
-    regions[regionIdx].length++;
-    
-    int dr, dc;
-    for (int i = 0; i < 4; i++) {
-        dr = row + drows[i];
-        dc = col + dcols[i];
+    else { return; }
 
-        if (0 <= dr && dr < nGrid && 0 <= dc && dc < nGrid) {
-            if (grid[dr][dc] == 0 && checkMap[dr][dc] < checkIdx) {
-                dfs(dr, dc, isRemoving);
-            }
-        }
-    }
-    incr = true;
-}
+    while (q.length > 0) {
+        Node curr = q.pop();
 
-int addBar(int mID, int mLength, int mRow, int mCol, int mDir) {
-    mRow--;
-    mCol--;
-
-    queue.clear();
-
-    hashBar[mID] = barIdx;
-    bars[barIdx].id = mID; bars[barIdx].isRemoved = false;
-    bars[barIdx].row = mRow; bars[barIdx].col = mCol;
-    bars[barIdx].dir = mDir; bars[barIdx].length = mLength;
-
-    for (int i = 0; i < mLength; i++) {
-        int dr, dc;
-        dr = mRow + drows[mDir] * i;
-        dc = mCol + dcols[mDir] * i;
-
-        if (regions[regionMap[dr][dc]].isExist) {
-            regions[regionMap[dr][dc]].length--;
-            if (regions[regionMap[dr][dc]].length < 1) {
-                regions[regionMap[dr][dc]].isExist = false;
+        if (isRemoving) {
+            if (regions[regionMap[curr.row][curr.col]].isExist && regionMap[curr.row][curr.col] != regionIdx) {
+                regions[regionMap[curr.row][curr.col]].isExist = false;
                 regionCnt--;
             }
         }
-        grid[dr][dc]++;
+
+        regionMap[curr.row][curr.col] = regionIdx;
+        regions[regionIdx].length++;
+
+        for (int i = 0; i < 4; i++) {
+            int dr = curr.row + drows[i];
+            int dc = curr.col + dcols[i];
+
+            if (0 <= dr && dr < boardSize && 0 <= dc && dc < boardSize) {
+                if (board[dr][dc] == 0 && bfsVisited[dr][dc] < nBfs) {
+                    q.push(dr, dc);
+                    bfsVisited[dr][dc] = nBfs;
+                }
+            }
+        }
     }
+    
+    regionIdx++;
+    regionCnt++;
+}
 
-    paintRegion(barIdx, false);
-    checkIdx++;
 
-    incr = false;
-    while (!queue.empty()) {
-        dfs(queue.front().first, queue.front().second, false);
-        queue.pop_front();
-        if (incr) { 
-            regions[regionIdx++].isExist = true;
-            regions[regionIdx].length = 0;
-            regionCnt++;
+int addBar(int mID, int mLength, int mRow, int mCol, int mDir)
+{
+    mRow--; mCol--;
+
+    hashStick[mID] = sIdx;
+
+    sticks[sIdx].id = mID;
+    sticks[sIdx].row = mRow;
+    sticks[sIdx].col = mCol;
+    sticks[sIdx].length = mLength;
+    sticks[sIdx].dir = mDir;
+
+    for (int i = 0; i < mLength; i++) {
+        int r = mRow + drows[mDir] * i;
+        int c = mCol + dcols[mDir] * i;
+
+        board[r][c]++;
+
+        if (regions[regionMap[r][c]].isExist) {
+            regions[regionMap[r][c]].length--;
+            if (regions[regionMap[r][c]].length == 0) {
+                regions[regionMap[r][c]].isExist = false;
+                regionCnt--;
+            }
         }
     }
 
-    barIdx++;
+    queue.init();
+
+    nBfs++;
+    paintRegion(sIdx, false);
+    nBfs++;
+
+    while (queue.length > 0) {
+        Node curr = queue.pop();
+
+        bfs(curr.row, curr.col, false);
+    }
+                                              
+    sIdx++;
+    
     return regionCnt;
 }
 
-int removeBar(int mID) {
-    queue.clear();
+int removeBar(int mID)
+{
 
-    int idx = hashBar[mID];
+    int idx = hashStick[mID];
+
+    queue.init();
 
     paintRegion(idx, true);
-    checkIdx++;
+    nBfs++;
 
-    incr = false;
-    while (!queue.empty()) {
-        dfs(queue.front().first, queue.front().second, true);
-        queue.pop_front();
-        if (incr) {
-            regions[regionIdx++].isExist = true;
-            regions[regionIdx].length = 0;
-            regionCnt++;
-        }
+    while (queue.length > 0) {
+        Node curr = queue.pop();
+
+        bfs(curr.row, curr.col, true);
     }
 
     return regionCnt;
