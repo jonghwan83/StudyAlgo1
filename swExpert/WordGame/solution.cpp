@@ -25,33 +25,34 @@ public:
 
 CardDeck deck[MAXDECK + 1];
 
-class Node {
+
+class Card {
 public:
-    int cardIdx;
+    int number;
 };
 
 class Heap {
 public:
     int length;
-    Node arr[MAXCARD + 1];
+    Card arr[MAXCARD + 1];
 
     void init() {
         length = 0;
     }
 
     bool compare(int parent, int child) {
-        if (deck[arr[parent].cardIdx].cnt < deck[arr[child].cardIdx].cnt) { return true; }
-        if (deck[arr[parent].cardIdx].cnt == deck[arr[child].cardIdx].cnt && strcmp(deck[arr[parent].cardIdx].word, deck[arr[child].cardIdx].word) > 0) { return true; }
+        if (deck[arr[parent].number].cnt < deck[arr[child].number].cnt) { return true; }
+        if (deck[arr[parent].number].cnt == deck[arr[child].number].cnt && strcmp(deck[arr[parent].number].word, deck[arr[child].number].word) > 0) { return true; }
         return false;
     }
 
     void push(int card) {
         int idx = length;
-        arr[length].cardIdx = card;;
+        arr[length].number = card;;
         length++;
 
         while ((idx - 1) / 2 >= 0 && compare((idx - 1) / 2, idx)) {
-            Node temp = arr[idx];
+            Card temp = arr[idx];
             arr[idx] = arr[(idx - 1) / 2];
             arr[(idx - 1) / 2] = temp;
             idx = (idx - 1) / 2;
@@ -59,10 +60,7 @@ public:
     }
 };
 
-class Card {
-public:
-    int number;
-};
+
 
 class Player {
 public:
@@ -108,7 +106,6 @@ void init(int N, char mWordList[][MAXL + 1], char mSubjectList[][MAXL + 1])
 
     return;
 }
-
 
 
 void join(int mID, int M, int mCardList[])
@@ -162,7 +159,7 @@ int getCard(int mID, char mBeginStr[], char mSubject[]) {
     }
 
     if (pQueue.length > 0) {
-        return pQueue.arr[0].cardIdx;   
+        return pQueue.arr[0].number;   
     }
 
     return 0;
