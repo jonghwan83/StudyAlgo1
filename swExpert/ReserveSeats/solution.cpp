@@ -199,7 +199,7 @@ Result reserveSeats(int mID, int K)
     Heap pQueue; pQueue.init();
     nVisited++;
 
-    int travers = theaters[res.id].nSeat;
+    int traverse = theaters[res.id].nSeat;
     int cnt = 0;
 
     for (int i = theaters[res.id].minID; i < MAXN; i++) {
@@ -243,7 +243,7 @@ Result reserveSeats(int mID, int K)
     theaters[res.id].minID = 101;
 
     while (pQueue.length > 0) {
-        if (cnt >= travers) { break; }
+        if (cnt >= traverse) { break; }
         int st = pQueue.pop();
 
         if (visited[st] >= nVisited) { continue; }
