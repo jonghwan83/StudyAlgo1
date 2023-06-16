@@ -114,9 +114,9 @@ public:
         }
     }
 
-    Heap checkSeat(int st, int k) {
+    Queue checkSeat(int st, int k) {
 
-        Heap ans; ans.init();
+        Queue ans; ans.init();
 
         Heap queue; queue.init();
 
@@ -214,7 +214,7 @@ Result reserveSeats(int mID, int K)
         int st = pQueue.pop();
 
         if (visited[st] >= nVisited) { continue; }
-        Heap seatIDs = theaters[res.id].checkSeat(st, K);
+        Queue seatIDs = theaters[res.id].checkSeat(st, K);
         cnt += seatIDs.length;
 
         if (seatIDs.length < K) {
@@ -249,7 +249,7 @@ Result reserveSeats(int mID, int K)
         if (visited[st] >= nVisited) { continue; }
         if (theaters[res.id].seatMap[st] > 0) { continue; }
 
-        Heap seatIDs = theaters[res.id].checkSeat(st, 100);
+        Queue seatIDs = theaters[res.id].checkSeat(st, 100);
         cnt += seatIDs.length;
 
         theaters[res.id].maxBundle = max(theaters[res.id].maxBundle, seatIDs.length);
