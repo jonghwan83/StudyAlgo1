@@ -1,55 +1,48 @@
 struct Result {
- int id;
- int num;
+    int id;
+    int num;
 };
 
-
-#include <vector>
-
-using namespace std;
-
-#define MAXSEAT 100
-#define MAXTHEATER 2000
+#define MAXN 101
+#define MAXTHEATERS 2001
 #define MAXRESERVE 50001
 
-int visited[10][10];
-int nVisited;
+int min(int a, int b) {
+    if (a < b) { return a; }
+    return b;
+}
 
-class HeapNode {
-public:
-    int seatID;
-    int idx;
-};
+int max(int a, int b) {
+    if (a > b) { return a; }
+    return b;
+}
 
 class Heap {
 public:
+    int arr[MAXN];
     int length;
-    HeapNode arr[MAXSEAT];
 
     void init() { length = 0; }
 
     bool compare(int parent, int child) {
-        if (arr[parent].seatID > arr[child].seatID) { return true; }
+        if (arr[parent] > arr[child]) { return true; }
         return false;
     }
 
-    void push(int s, int i) {
-        HeapNode last;
-        last.seatID = s; last.idx = i;
-
+    void push(int a) {
         int idx = length;
-        arr[length++] = last;
+        arr[length++] = a;
 
         while ((idx - 1) / 2 >= 0 && compare((idx - 1) / 2, idx)) {
-            HeapNode temp = arr[idx];
+            int temp = arr[idx];
             arr[idx] = arr[(idx - 1) / 2];
             arr[(idx - 1) / 2] = temp;
             idx = (idx - 1) / 2;
         }
     }
 
-    HeapNode pop() {
-        HeapNode ans = arr[0];
+    int pop() {
+        int ans = arr[0];
         arr[0] = arr[--length];
 
         int idx = 0;
@@ -66,257 +59,123 @@ public:
             else { child = left; }
 
             if (compare(idx, child)) {
-                HeapNode temp = arr[idx];
+                int temp = arr[idx];
                 arr[idx] = arr[child];
                 arr[child] = temp;
                 idx = child;
             }
             else { break; }
         }
-
         return ans;
     }
 };
 
-int drows[4] = { -1, 0, 0, 1 };
-int dcols[4] = { 0, -1, 1, 0 };
-
-class Reservations {
+class Queue {
 public:
-    int id;
-    int theater;
-    vector<int> seatIDs;
-
-    void init() { seatIDs.clear(); }
-};
-
-Reservations reservations[MAXRESERVE];
-
-
-class Seat {
-public:
-    int row;
-    int col;
-};
-
-Seat id2coor(int id) {
-    Seat ans; id--;
-    ans.row = id / 10;
-    ans.col = id % 10;
-    return ans;
-}
-
-int coor2id(int row, int col) {
-    return row * 10 + col + 1;
-}
-
-class Vacancy {
-public:
-    bool isMerged;
-    int minID;
-    int nSeats;
+    int arr[MAXN];
+    int length, st, ed;
 
     void init() {
-        minID = 0;
-        isMerged = false;
-        nSeats = 0;
+        length = 0; st = 0; ed = 0;
+    }
+
+    void push(int a) {
+        length++;
+        arr[ed++] = a;
+    }
+
+    int pop() {
+        length--;
+        return arr[st++];
+    }
+
+    int front() {
+        return arr[st];
     }
 };
+
+int around[4] = { -10, -1, 1, 10 };
+int visited[MAXN];
+int nVisited;
 
 class Theater {
 public:
-    Heap minIDs;
-    Vacancy vacancies[MAXSEAT * 2];
-    
-    int rootVacancy[MAXSEAT * 2];
-    int seatMap[10][10];
-    int vIdx;
-    int maxVacancy;
+    int seatMap[MAXN];
+    int nSeat;
+    int maxBundle;
+    int minID;
 
     void init() {
-        for (int i = 0; i < MAXSEAT * 2; i++) {
-            vacancies[i].init();
-            rootVacancy[i] = i;
-        }
-
-        minIDs.init();
-        minIDs.push(1, 1);
-
-        vacancies[1].nSeats = 100;
-        vacancies[1].minID = 1;
-
-        vIdx = 2;
-
-        maxVacancy = 100;
-
-        for (int i = 0; i < 10; i++) {
-            for (int j = 0; j < 10; j++) {
-                seatMap[i][j] = 1;
-            }
-        }
-        
-    }
-
-    void updateMax() {
-        maxVacancy = 0;
-        for (int i = 1; i < vIdx; i++) {
-            if (!vacancies[i].isMerged) {
-                maxVacancy = max(maxVacancy, vacancies[i].nSeats);
-            }
+        nSeat = 100;
+        maxBundle = 100;
+        minID = 1;
+        for (int i = 0; i < MAXN; i++) {
+            seatMap[i] = 0;
         }
     }
 
-    int findVacancy(int x) {
-        if (rootVacancy[x] == x) { return x; }
-        else { return findVacancy(rootVacancy[x]); } 
-    }
+    Heap checkSeat(int st, int k) {
 
-    void unionVacancy(int x, int y) {
-        x = findVacancy(x);
-        vacancies[x].isMerged = true;
-        rootVacancy[x] = y;
-    }
-
-    void checkRemain(int cID, int idx, int newIdx) {
-        
-        Heap ids; ids.init();
+        Heap ans; ans.init();
 
         Heap queue; queue.init();
-        queue.push(cID, idx);
 
-        Seat c = id2coor(cID);
-        visited[c.row][c.col] = nVisited;
+        queue.push(st);
+        visited[st] = nVisited;
 
-        HeapNode curr;
-        while (queue.length > 0) {
-            curr = queue.pop();
+        while (queue.length > 0 && ans.length < k) {
+            int curr = queue.pop();
 
-            c = id2coor(curr.seatID);
-            ids.push(curr.seatID, curr.idx);
-            seatMap[c.row][c.col] = newIdx;
+            ans.push(curr);
 
             for (int i = 0; i < 4; i++) {
-                int dr = c.row + drows[i];
-                int dc = c.col + dcols[i];
+                int d = curr + around[i];
 
-                if (dr < 0 || dc < 0 || dr >= 10 || dc >= 10) { continue; }
-                if (findVacancy(seatMap[dr][dc]) != idx) { continue; }
+                if (d < 1 || d > 100) { continue; }
+                if (curr % 10 == 0 && d % 10 == 1) { continue; }
+                if (curr % 10 == 1 && d % 10 == 0) { continue; }
 
-                if (visited[dr][dc] < nVisited) {
-                    visited[dr][dc] = nVisited;
-                    queue.push(coor2id(dr, dc), idx);
+                if (seatMap[d] == 0) {
+                    if (visited[d] < nVisited) {
+                        visited[d] = nVisited;
+                        queue.push(d);
+                    }
                 }
             }
         }
 
-        vacancies[newIdx].init();
-        vacancies[newIdx].nSeats = ids.length;
-        vacancies[newIdx].minID = ids.arr[0].seatID;
-        minIDs.push(vacancies[newIdx].minID, newIdx);
-    }
-
-    void reserve(int k, int rIdx) {
-        int cnt = 0;
-
-        HeapNode temp[MAXSEAT * 2];
-        int tIdx = 0;
-
-        HeapNode curr;
-
-        while (minIDs.length > 0) {
-            curr = minIDs.pop(); 
-        
-            if (vacancies[curr.idx].isMerged) { continue; }
-
-            if (vacancies[curr.idx].nSeats < k) {
-                temp[tIdx++] = curr;
-                continue;
-            }
-            else { break; }
-        }
-
-        for (int i = 0; i < tIdx; i++) {
-            minIDs.push(temp[i].seatID, temp[i].idx);
-        }
-
-        Heap pQueue; pQueue.init();
-        Heap pQueue2; pQueue2.init();
-        nVisited++;
-
-        pQueue.push(curr.seatID, curr.idx);
-        Seat c = id2coor(curr.seatID);
-        visited[c.row][c.col] = nVisited;
-        vacancies[curr.idx].nSeats--;
-
-        while (pQueue.length > 0) {
-            HeapNode node = pQueue.pop();
-
-            c = id2coor(node.seatID);
-            if (cnt < k) {
-                seatMap[c.row][c.col] = 0; cnt++;
-                vacancies[node.idx].nSeats--;
-                reservations[rIdx].seatIDs.push_back(node.seatID);
-            }
-            else {
-                pQueue2.push(node.seatID, node.idx);
-            }
-
-            for (int i = 0; i < 4; i++) {
-                int dr = c.row + drows[i];
-                int dc = c.col + dcols[i];
-
-                if (dr < 0 || dc < 0 || dr >= 10 || dc >= 10) { continue; }
-                if (findVacancy(seatMap[dr][dc]) != node.idx) { continue; }
-
-                if (visited[dr][dc] < nVisited) {
-                    visited[dr][dc] = nVisited;
-                    pQueue.push(coor2id(dr, dc), node.idx);
-                }
-            }
-        }
-
-        int newIdx = curr.idx;
-        nVisited++;
-        bool idxIncr = false;
-        while (pQueue2.length > 0) {
-            HeapNode node = pQueue2.pop();
-
-            c = id2coor(node.seatID);
-            if (visited[c.row][c.col] >= nVisited) { continue; }
-
-
-            if (idxIncr) {
-                newIdx = vIdx++; idxIncr = false;
-            }
-            checkRemain(node.seatID, curr.idx, newIdx);
-            idxIncr = true;
-        }
-
-        updateMax();
-
+        return ans;
     }
 
 };
 
+class Reservation {
+public:
+    int theater;
+    Queue seatIDs;
+
+    void init() {
+        seatIDs.init();
+    }
+};
+
 int total;
-Theater theaters[MAXTHEATER];
+Theater theaters[MAXTHEATERS];
+Reservation reservations[MAXRESERVE];
 
 void init(int N)
 {
+    nVisited = 0;
+
+    for (int i = 0; i < MAXN; i++) {
+        visited[i] = 0;
+    }
 
     for (int i = 1; i <= N; i++) {
         theaters[i].init();
     }
 
     total = N;
-
-    for (int i = 0; i < 10; i++) {
-        for (int j = 0; j < 10; j++) {
-            visited[i][j] = 0;
-        }
-    }
-
-    nVisited = 0;
 }
 
 Result reserveSeats(int mID, int K)
@@ -326,21 +185,71 @@ Result reserveSeats(int mID, int K)
     res.num = 0;
 
     for (int i = 1; i <= total; i++) {
-        if (theaters[i].maxVacancy < K) { continue; }
-        res.id = i; break;
+        if (theaters[i].nSeat < K) { continue; }
+        if (theaters[i].maxBundle < K) { continue; }
+        res.id = i;
+        break;
     }
 
-    if (res.id == 0) { 
-        return res; 
-    }
+    if (res.id == 0) { return res; }
 
     reservations[mID].init();
     reservations[mID].theater = res.id;
 
-    theaters[res.id].reserve(K, mID);
-    
-    res.num = reservations[mID].seatIDs.front();
+    Heap pQueue; pQueue.init();
+    nVisited++;
 
+    for (int i = theaters[res.id].minID; i < MAXN; i++) {
+        if (theaters[res.id].seatMap[i] == 0) {
+            pQueue.push(i);
+        }
+    }
+
+    Queue temp; temp.init();
+
+    while (pQueue.length > 0) {
+        int st = pQueue.pop();
+
+        if (visited[st] >= nVisited) { continue; }
+        Heap seatIDs = theaters[res.id].checkSeat(st, K);
+
+        if (seatIDs.length < K) {
+            temp.push(st);
+            continue;
+        }
+
+        theaters[res.id].nSeat -= seatIDs.length;
+
+        while (seatIDs.length > 0) {
+            int id = seatIDs.pop();
+
+            theaters[res.id].seatMap[id] = mID;
+            reservations[mID].seatIDs.push(id);
+        }
+
+        while (temp.length > 0) {
+            pQueue.push(temp.pop());
+        }
+        break;
+    }
+
+    nVisited++;
+    theaters[res.id].maxBundle = 0;
+    theaters[res.id].minID = 101;
+
+    while (pQueue.length > 0) {
+        int st = pQueue.pop();
+
+        if (visited[st] >= nVisited) { continue; }
+        if (theaters[res.id].seatMap[st] > 0) { continue; }
+
+        Heap seatIDs = theaters[res.id].checkSeat(st, 100);
+
+        theaters[res.id].maxBundle = max(theaters[res.id].maxBundle, seatIDs.length);
+        theaters[res.id].minID = min(theaters[res.id].minID, seatIDs.arr[0]);
+    }
+
+    res.num = reservations[mID].seatIDs.front();
 
     return res;
 }
@@ -351,39 +260,39 @@ Result cancelReservation(int mID)
     res.id = 0;
     res.num = 0;
 
+    nVisited++;
+
     res.id = reservations[mID].theater;
+    int cnt = reservations[mID].seatIDs.length;
+    theaters[res.id].minID = min(theaters[res.id].minID, reservations[mID].seatIDs.front());
 
-    int vacIdx = theaters[res.id].vIdx;
+    theaters[res.id].nSeat += cnt;
 
-    theaters[res.id].vacancies[vacIdx].init();
-    theaters[res.id].vacancies[vacIdx].nSeats = reservations[mID].seatIDs.size();
-    theaters[res.id].vacancies[vacIdx].minID = reservations[mID].seatIDs.front();
+    while (reservations[mID].seatIDs.length > 0) {
+        int id = reservations[mID].seatIDs.pop();
 
-    for (int s : reservations[mID].seatIDs) {
-        res.num += s;
-        Seat c = id2coor(s);
-        theaters[res.id].seatMap[c.row][c.col] = vacIdx;
+        if (theaters[res.id].seatMap[id] == mID) {
+            res.num += id;
+            visited[id] = nVisited;
+            theaters[res.id].seatMap[id] = 0;
+        }
 
         for (int i = 0; i < 4; i++) {
-            int dr = c.row + drows[i];
-            int dc = c.col + dcols[i];
+            int d = id + around[i];
 
-            if (dr < 0 || dc < 0 || dr >= 10 || dc >= 10) { continue; }
-            if (theaters[res.id].seatMap[dr][dc] == 0 || 
-                theaters[res.id].findVacancy(theaters[res.id].seatMap[dr][dc]) == vacIdx) { continue; }
-            
-            int v = theaters[res.id].findVacancy(theaters[res.id].seatMap[dr][dc]);
-            theaters[res.id].unionVacancy(v, vacIdx);
-            theaters[res.id].vacancies[vacIdx].nSeats += theaters[res.id].vacancies[v].nSeats;
-            theaters[res.id].vacancies[vacIdx].minID = min(theaters[res.id].vacancies[vacIdx].minID, theaters[res.id].vacancies[v].minID);
+            if (d < 1 || d > 100) { continue; }
+            if (id % 10 == 0 && d % 10 == 1) { continue; }
+            if (id % 10 == 1 && d % 10 == 0) { continue; }
+
+            if (theaters[res.id].seatMap[d] == 0 && visited[d] < nVisited) {
+                cnt++;
+                visited[d] = nVisited;
+                reservations[mID].seatIDs.push(d);
+            }
         }
     }
 
-    theaters[res.id].minIDs.push(theaters[res.id].vacancies[vacIdx].minID, vacIdx);
-
-    theaters[res.id].maxVacancy = max(theaters[res.id].maxVacancy, theaters[res.id].vacancies[vacIdx].nSeats);
-
-    theaters[res.id].vIdx++;
+    theaters[res.id].maxBundle = max(theaters[res.id].maxBundle, cnt);
 
     return res;
 }
