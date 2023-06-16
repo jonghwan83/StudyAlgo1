@@ -199,6 +199,9 @@ Result reserveSeats(int mID, int K)
     Heap pQueue; pQueue.init();
     nVisited++;
 
+    int travers = theaters[res.id].nSeat;
+    int cnt = 0;
+
     for (int i = theaters[res.id].minID; i < MAXN; i++) {
         if (theaters[res.id].seatMap[i] == 0) {
             pQueue.push(i);
@@ -212,9 +215,11 @@ Result reserveSeats(int mID, int K)
 
         if (visited[st] >= nVisited) { continue; }
         Heap seatIDs = theaters[res.id].checkSeat(st, K);
+        cnt += seatIDs.length;
 
         if (seatIDs.length < K) {
             temp.push(st);
+            cnt -= seatIDs.length;
             continue;
         }
 
@@ -238,12 +243,14 @@ Result reserveSeats(int mID, int K)
     theaters[res.id].minID = 101;
 
     while (pQueue.length > 0) {
+        if (cnt >= travers) { break; }
         int st = pQueue.pop();
 
         if (visited[st] >= nVisited) { continue; }
         if (theaters[res.id].seatMap[st] > 0) { continue; }
 
         Heap seatIDs = theaters[res.id].checkSeat(st, 100);
+        cnt += seatIDs.length;
 
         theaters[res.id].maxBundle = max(theaters[res.id].maxBundle, seatIDs.length);
         theaters[res.id].minID = min(theaters[res.id].minID, seatIDs.arr[0]);
