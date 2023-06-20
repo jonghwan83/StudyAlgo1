@@ -1,5 +1,4 @@
 #include <cstring>
-#include <cmath>
 
 using namespace std;
 
@@ -41,14 +40,13 @@ public:
     }
 };
 
-int char2key(const char* str) {
+int char2key(char str[]) {
     unsigned long hash = 5381;
-    int c;
 
-    while (c = *str++)
-    {
-        hash = ((hash << 5) + hash) + c;
+    for (int i = 0; i < strlen(str); i++) {
+        hash = ((hash << 5) + hash) + str[i];
     }
+
     return hash % TABLESIZE;
 }
 
