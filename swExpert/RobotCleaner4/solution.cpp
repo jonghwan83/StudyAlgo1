@@ -253,6 +253,8 @@ void cleanHouse(void)
 	wall += 3;
 	cleaned += 3;
 
+	house[robotInfo.row][robotInfo.col] = cleaned;
+
 
 	while (true) {
 
