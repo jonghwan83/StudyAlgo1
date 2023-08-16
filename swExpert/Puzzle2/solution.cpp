@@ -1,275 +1,103 @@
+
 extern void move(int mode);
 
-#define MAXARR 50000
-#define MAXP 1024
+#define U move(0)
+#define D move(1)
+#define L move(2)
+#define R move(3)
 
-int abs(int a) {
-    if (a < 0) { return -a; }
-    return a;
+const int (*p)[3];
+
+void goCenter() {
+    if (p[0][0] == 0) { D; R; }
+    else if (p[0][1] == 0) { D; }
+    else if (p[0][2] == 0) { D; L; }
+
+    else if (p[1][0] == 0) { R; }
+    else if (p[1][2] == 0) { L; }
+
+    else if (p[2][0] == 0) { R; U; }
+    else if (p[2][1] == 0) { U; }
+    else if (p[2][2] == 0) { L; U; }
 }
 
-int pow(int n, int r) {
-    int ans = 1;
+void make1() {
+    if (p[0][1] == 1) { L; U; R; }
+    else if (p[0][2] == 1) { U; R; D; L; L; U; R; }
+    else if (p[1][0] == 1) { U; L; D; }
+    else if (p[1][2] == 1) { U; R; D; L; U; R; D; L; L; U; R; }
+    else if (p[2][0] == 1) { L; D; R; U; U; L; D; }
+    else if (p[2][1] == 1) { L; D; R; U; U; L; D; D; R; U; U; L; D; }
+    else if (p[2][2] == 1) { D; R; U; L; L; D; R; U; U; L; D; D; R; U; U; L; D; }
 
-    for (int i = 0; i < r; i++) {
-        ans *= n;
-    }
-
-    return ans;
+    goCenter();
 }
 
-class Node {
-public:
-    int data;
-    Node* next;
-};
+void make2() {
+    if (p[0][1] == 2) { R; U; L; }
+    else if (p[1][0] == 2) { L; U; R; D; R; U; L; L; D; }
+    else if (p[1][2] == 2) { U; R; D; }
+    else if (p[2][0] == 2) { L; D; R; U; L; U; R; D; R; U; L; L; D; }
+    else if (p[2][1] == 2) { L; D; R; U; L; D; R; U; L; U; R; D; R; U; L; L; D; }
+    else if (p[2][2] == 2) { R; D; L; U; U; R; D; }
 
-class LinkedList {
-public:
-    int length;
-    Node* head;
-    Node* tail;
-
-    void init() {
-        length = 0;
-        head = nullptr;
-        tail = nullptr;
-    }
-
-    void push(int a) {
-        Node* node = new Node();
-        node->data = a;
-
-        if (!head) {
-            head = node;
-        }
-        else {
-            tail->next = node;
-        }
-
-        tail = node;
-        length++;
-    }
-
-    void copy(LinkedList a) {
-
-        Node* node = a.head;
-        while (node) {
-            push(node->data);
-            node = node->next;
-        }
-    }
-};
-
-
-class HeapNode {
-public:
-    int score;
-    int loc;
-    int p;
-    LinkedList seq;
-};
-
-class Heap {
-public:
-    int length;
-    HeapNode arr[MAXARR];
-
-    void init() {
-        length = 0;
-    }
-
-    bool compare(int parent, int child) {
-        if (arr[parent].score > arr[child].score) { return true; }
-        if (arr[parent].score == arr[child].score && arr[parent].loc > arr[child].loc) { return true; }
-        if (arr[parent].score == arr[child].score && arr[parent].loc == arr[child].loc && arr[parent].seq.length > arr[child].seq.length) { return true; }
-        return false;
-    }
-
-    void push(int s, int l, int p, LinkedList seq) {
-        HeapNode last;
-        last.score = s; last.loc = l; last.seq = seq; last.p = p;
-
-
-        int idx = length;
-        arr[length++] = last;
-
-        while ((idx - 1) / 2 >= 0 && compare((idx - 1) / 2, idx)) {
-            HeapNode temp = arr[idx];
-            arr[idx] = arr[(idx - 1) / 2];
-            arr[(idx - 1) / 2] = temp;
-            idx = (idx - 1) / 2;
-        }
-    }
-
-    HeapNode pop() {
-        HeapNode ans = arr[0];
-        arr[0] = arr[--length];
-
-        int idx = 0;
-        int left, right, child;
-
-        while (2 * idx + 1 < length) {
-            left = 2 * idx + 1;
-            right = 2 * idx + 2;
-
-            if (right < length) {
-                if (compare(left, right)) { child = right; }
-                else { child = left; }
-            }
-            else { child = left; }
-
-            if (compare(idx, child)) {
-                HeapNode temp = arr[idx];
-                arr[idx] = arr[child];
-                arr[child] = temp;
-                idx = child;
-            }
-            else { break; }
-        }
-
-        return ans;
-    }
-};
-
-int dir[4] = { -3, 3, -1, 1 };
-int rev[9] = { 8, 7, 6, 5, 4, 3, 2, 1, 0 };
-
-int swap(int a, int b, int puzzle) {
-
-    int p[9];
-
-    for (int i = 0; i < 9; i++) {
-        p[i] = (puzzle / pow(10, rev[i])) % 10;
-    }
-
-    int temp = p[a];
-    p[a] = p[b];
-    p[b] = temp;
-
-    int ans = 0;
-
-    for (int i = 0; i < 9; i++) {
-        ans += pow(10, rev[i]) * p[i];
-    }
-    return ans;
+    goCenter();
 }
 
-int getScore(int puzzle) {
-    int ans = 0;
+void make3() {
+    if (p[1][0] == 3) { L; D; R; R; U; L; }
+    else if (p[2][0] == 3) { D; L; U; R; D; R; U; L; }
+    else if (p[2][1] == 3) { D; R; U; L; }
+    else if (p[2][2] == 3) { R; D; }
+    else if (p[0][1] == 3) { U; R; D; D; L; U; R; U; L; D; D; R; U; L; }
 
-    for (int i = 0; i < 9; i++) {
-        int k = (puzzle / pow(10, rev[i])) % 10;
+    goCenter();
 
-        if (k == 9) { continue; }
-        int rGoal = (k - 1) / 3;
-        int cGoal = (k - 1) % 3;
+    U; R; D; D;
+}
 
-        int rCurr = i / 3;
-        int cCurr = i % 3;
 
-        int dist = abs(rCurr - rGoal) + abs(cCurr - cGoal);
+void clockwise(bool isLeft) {
+    if (isLeft) { L; }
+    L; U; R; D;
+    if (isLeft) { R; }
+}
 
-        ans += dist;
+void make6() {
+    if (p[2][1] == 6) { U; L; D; L; U; R; R; D; }
+
+    while (p[1][1] != 6) {
+        clockwise(true);
     }
 
-    return ans;
-}
-
-int p2key(int puzzle) {
-    return puzzle % MAXP;
-}
-
-LinkedList visited[MAXP];
-
-void pushVisited(int puzzle) {
-    int key = p2key(puzzle);
-    visited[key].push(puzzle);
-}
-
-bool isInclude(int puzzle) {
-    int key = p2key(puzzle);
-
-    Node* node = visited[key].head;
-
-    while (node) {
-        if (node->data == puzzle) { return true; }
-        node = node->next;
-    }
-    return false;
+    U; L; D;
 }
 
 
 void test(const int P[3][3]) {
+    p = P;
 
-    int puzzle = 0; int st;
+    goCenter();
 
-    for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-            int k = i * 3 + j;
+    make1();
 
-            if (P[i][j] == 0) {
-                puzzle += pow(10, rev[k]) * 9;
-                st = k;
-            }
-            else {
-                puzzle += pow(10, rev[k]) * P[i][j];
-            }
+    make2();
 
+    make3();
+
+    while (p[1][2] != 8) {
+        if (p[1][0] == 8 || p[2][0] == 8) {
+            clockwise(true);
         }
+
+        clockwise(false);
     }
 
-    for (int i = 0; i < MAXP; i++) {
-        visited[i].init();
+    make6();
+
+    while (p[1][0] != 4) {
+        clockwise(false);
     }
 
-
-    Heap pQueue; pQueue.init();
-
-    LinkedList a; a.init();
-    pQueue.push(0, st, puzzle, a);
-
-    pushVisited(puzzle);
-
-    int k = 0;
-    while (pQueue.length > 0) {
-        HeapNode curr = pQueue.pop(); k++;
-
-        for (int i = 0; i < 4; i++) {
-            int d = curr.loc + dir[i];
-
-            if (d < 0 || d > 8) { continue; }
-            if (curr.loc % 3 == 0 && d % 3 == 2) { continue; }
-            if (curr.loc % 3 == 2 && d % 3 == 0) { continue; }
-
-            int newPuzzle = swap(curr.loc, d, curr.p);
-
-            if (newPuzzle == 123456789) {
-                curr.seq.push(i);
-
-                Node* node = curr.seq.head;
-                while (node) {
-                    move(node->data);
-                    node = node->next;
-                }
-                return;
-            }
-
-            if (!isInclude(newPuzzle)) {
-                pushVisited(newPuzzle);
-
-                LinkedList s; s.init();
-                s.copy(curr.seq);
-                s.push(i);
-
-                int g = s.length;
-                int h = getScore(newPuzzle);
-
-                pQueue.push(g + h, d, newPuzzle, s);
-            }
-        }
-    }
-
-
+    R;
 }
-
