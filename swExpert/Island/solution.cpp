@@ -1,187 +1,273 @@
-#include <vector>
 
-#define MAXSIZE 20
-#define MAXLENGTH 5
+#define MAXN 20
 #define OFFSET 10
-#define MAXISLAND 21
 
-using namespace std;
-
-int islandSize, cnt;
-vector<int> drows = { -1, 1, 0, 0 };
-vector<int> dcols = { 0, 0, -1, 1 };
-
-vector< vector< vector< vector< vector< vector<int> > > > > > hashStructure(MAXSIZE, 
-	vector< vector< vector< vector< vector<int> > > > > (MAXSIZE, 
-		vector< vector< vector< vector<int> > > > (MAXSIZE, 
-			vector< vector< vector<int> > > (MAXSIZE))));
-
-vector< vector<int> > island(MAXISLAND, 
-	vector<int> (MAXISLAND));
-
-vector< vector<bool> > visited(MAXISLAND,
-	vector<bool>(MAXISLAND));
-
-vector< vector<int> > seaRised(MAXISLAND,
-	vector<int>(MAXISLAND));
-
-void putStructure(int r, int c, int k, int M, int mStructure[]) {
-	int dr, dc;
-	int t = 0;
-	for (int i = 0; i < islandSize; i++) {
-		for (int j = 0; j < islandSize; j++) {
-			seaRised[i][j] = island[i][j];
-			visited[i][j] = false;
-		}
-	}
-	while (t < M) {
-		dr = r + drows[k] * t;
-		dc = c + dcols[k] * t;
-		seaRised[dr][dc] += mStructure[t];
-		t++;
-	}
+int max(int a, int b) {
+    if (a > b) { return a; }
+    return b;
 }
 
-void riseSeaLevel(int r, int c, int mSeaLevel) {
-	if (seaRised[r][c] >= mSeaLevel) {
-		return;
-	}
+struct Element {
+    int row;
+    int col;
+};
 
-	if (seaRised[r][c] < mSeaLevel && !visited[r][c]) {
-		cnt++;
-		visited[r][c] = true;
-	}
+class Queue {
+public:
+    int length, st, ed;
+    Element arr[MAXN * MAXN];
 
-	int dr, dc;
-	for (int i = 0; i < 4; i++) {
-		dr = r + drows[i];
-		dc = c + dcols[i];
-		if (0 <= dr && dr < islandSize && 0 <= dc && dc < islandSize) {
-			if (seaRised[dr][dc] < mSeaLevel && !visited[dr][dc]) {
-				seaRised[dr][dc] == 0;
-				visited[dr][dc] = true;
-				cnt++;
-				riseSeaLevel(dr, dc, mSeaLevel);
-			}
-		}
-	}
+    void init() {
+        length = 0; st = 0; ed = 0;
+    }
+
+    void push(int r, int c) {
+        arr[ed].row = r; arr[ed].col = c;
+        ed++; length++;
+    }
+
+    Element pop() {
+        length--;
+        return arr[st++];
+    }
+};
+
+struct Node {
+    int row;
+    int col;
+    int dir;
+    Node *next;
+};
+
+class LinkedList {
+public:
+    int length;
+    Node* head;
+
+    void init() {
+        length = 0; head = nullptr;
+    }
+
+    void push(int r, int c, int d) {
+        Node* node = new Node();
+        node->row = r; node->col = c; node->dir = d;
+
+        node->next = head;
+        head = node;
+        length++;
+    }
+};
+
+struct HashKey {
+    int key[4];
+
+    HashKey() {
+        for (int i = 0; i < 4; i++) {
+            key[i] = 0;
+        }
+    }
+};
+
+int n;
+LinkedList hashStructure[MAXN][MAXN][MAXN][MAXN];
+int island[MAXN][MAXN];
+
+int nVisited;
+int visited[MAXN][MAXN];
+
+int drows[4] = { 0, 1, 0, -1 };
+int dcols[4] = { 1, 0, -1, 0 };
+
+void install(int M, int mStructure[5], int row, int col, int dir) {
+
+    for (int i = 0; i < M; i++) {
+        island[row + drows[dir] * i][col + dcols[dir] * i] += mStructure[i];
+    }
+}
+
+void uninstall(int M, int mStructure[5], int row, int col, int dir) {
+
+    for (int i = 0; i < M; i++) {
+        island[row + drows[dir] * i][col + dcols[dir] * i] -= mStructure[i];
+    }
+}
+
+int simulate(int mSeaLevel) {
+    nVisited++;
+
+    int submerged = 0;
+
+    Queue queue; queue.init();
+
+    for (int r = 0; r < n; r++) {
+
+        if (island[r][0] < mSeaLevel && visited[r][0] < nVisited) {
+            queue.push(r, 0);
+            visited[r][0] = nVisited; submerged++;
+        }
+
+        if (island[r][n - 1] < mSeaLevel && visited[r][n - 1] < nVisited) {
+            queue.push(r, n - 1);
+            visited[r][n - 1] = nVisited; submerged++;
+        }
+    }
+
+    for (int c = 0; c < n; c++) {
+
+        if (island[0][c] < mSeaLevel && visited[0][c] < nVisited) {
+            queue.push(0, c);
+            visited[0][c] = nVisited; submerged++;
+        }
+
+        if (island[n - 1][c] < mSeaLevel && visited[n - 1][c] < nVisited) {
+            queue.push(n - 1, c);
+            visited[n - 1][c] = nVisited; submerged++;
+        }
+    }
+
+    while (queue.length > 0) {
+        Element curr = queue.pop();
+
+        for (int i = 0; i < 4; i++) {
+            int dr = curr.row + drows[i];
+            int dc = curr.col + dcols[i];
+
+            if (dr < 0 || dc < 0) { continue; }
+            if (dr >= n || dc >= n) { continue; }
+            if (visited[dr][dc] >= nVisited) { continue; }
+
+            if (island[dr][dc] < mSeaLevel) {
+                queue.push(dr, dc);
+                visited[dr][dc] = nVisited; submerged++;
+            }
+
+        }
+
+    }
+
+    return n * n - submerged;
+}
+
+bool isSymmetric(int M, int mStructure[]) {
+
+    for (int i = 0; i < M / 2; i++) {
+        if (mStructure[i] != mStructure[M - 1 - i]) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+void initHash() {
+
+    for (int i = 0; i < MAXN; i++) {
+        for (int j = 0; j < MAXN; j++) {
+            for (int k = 0; k < MAXN; k++) {
+                for (int l = 0; l < MAXN; l++) {
+                    hashStructure[i][j][k][l].init();
+                }
+            }
+        }
+    }
 }
 
 
 void init(int N, int mMap[20][20])
 {
-	for (int i = 0; i < MAXSIZE; i++) {
-		for (int j = 0; j < MAXSIZE; j++) {
-			for (int k = 0; k < MAXSIZE; k++) {
-				for (int l = 0; l < MAXSIZE; l++) {
-					hashStructure[i][j][k][l].clear();
-				}
-			}
-		}
-	}
+    nVisited = 0;
 
-	islandSize = N;
-	int dr, dc;
-	vector<int> idx;
-	for (int i = 0; i < N; i++) {
-		for (int j = 0; j < N; j++) {
-			island[i][j] = mMap[i][j];
-			for (int l = 0; l < 4; l++) {
-				idx.clear();
-				idx.resize(4);
-				for (int k = 1; k < MAXLENGTH; k++) {
-					dr = i + drows[l] * k;
-					dc = j + dcols[l] * k;
-					if (0 <= dr && dr < N && 0 <= dc && dc < N) {
-						idx[k - 1] = mMap[i][j] - mMap[dr][dc] + OFFSET;
-						hashStructure[idx[0]][idx[1]][idx[2]][idx[3]].push_back({ i,  j,  l });
-					}
-				}
-			}
-		}
-	}
+    n = N;
+
+    initHash();
+
+    for (int r = 0; r < n; r++) {
+        for (int c = 0; c < n; c++) {
+
+            island[r][c] = mMap[r][c];
+            visited[r][c] = 0;
+
+            for (int i = 0; i < 4; i++) {
+
+                HashKey hash;
+
+                for (int j = 1; j < 5; j++) {
+
+                    int dr = r + drows[i] * j;
+                    int dc = c + dcols[i] * j;
+
+                    if (dc >= n || dr >= n) { continue; }
+                    if (dc < 0 || dr < 0) { continue; }
+
+                    hash.key[j - 1] = mMap[r][c] - mMap[dr][dc] + OFFSET;
+                    hashStructure[hash.key[0]][hash.key[1]][hash.key[2]][hash.key[3]].push(r, c, i);
+                }
+
+            }
+
+        }
+    }
+
 }
 
 int numberOfCandidate(int M, int mStructure[5])
 {
-	if (M == 1) { return islandSize * islandSize; }
-	bool isSymmetry = false;
-	if (M == 3) {
-		if (mStructure[0] == mStructure[2]) { isSymmetry = true; }
-	}
-	else if (M == 2) {
-		if (mStructure[0] == mStructure[1]) { isSymmetry = true; }
-	}
-	else if (M == 4) {
-		if (mStructure[0] == mStructure[3] && mStructure[1] == mStructure[2]) { isSymmetry = true; }
-	}
-	else if (M == 5) {
-		if (mStructure[0] == mStructure[4] && mStructure[1] == mStructure[3]) { isSymmetry = true; }
-	}
+    if (M == 1) { return n * n; }
 
-	vector<int> idx(4);
-	for (int i = 0; i < (M-1); i++) {
-		idx[i] = mStructure[i + 1] - mStructure[0] + OFFSET;
-	}
+    bool symmetric = isSymmetric(M, mStructure);
 
-	if (isSymmetry) {
-		return hashStructure[idx[0]][idx[1]][idx[2]][idx[3]].size() / 2;
-	}
-	return hashStructure[idx[0]][idx[1]][idx[2]][idx[3]].size();
+    HashKey fwd;
+
+    for (int i = 1; i < M; i++) {
+        fwd.key[i - 1] = mStructure[i] - mStructure[0] + OFFSET;
+    }
+
+    int ans = hashStructure[fwd.key[0]][fwd.key[1]][fwd.key[2]][fwd.key[3]].length;
+
+    if (symmetric) { ans /= 2; }
+
+    return ans;
 }
 
 int maxArea(int M, int mStructure[5], int mSeaLevel)
 {
-	int r, c, k;
-	int ans = 0;
 
-	vector<int> idx(4);
-	for (int i = 0; i < (M - 1); i++) {
-		idx[i] = mStructure[i + 1] - mStructure[0] + OFFSET;
-	}
+    int ans = 0;
 
-	if (M == 1) {
-		for (int r = 0; r < islandSize; r++) {
-			for (int c = 0; c < islandSize; c++) {
-				putStructure(r, c, 0, M, mStructure);
-				cnt = 0;
-				for (int i = 0; i < islandSize; i++) {
-					riseSeaLevel(0, i, mSeaLevel);
-					riseSeaLevel(i, 0, mSeaLevel);
-					riseSeaLevel(islandSize - 1, i, mSeaLevel);
-					riseSeaLevel(i, islandSize - 1, mSeaLevel);
-				}
-				if ((islandSize * islandSize - cnt) > ans) {
-					ans = islandSize * islandSize - cnt;
-				}
-				
-			}
-		}
-		return ans;
-	}
+    if (M == 1) {
+        for (int r = 0; r < n; r++) {
+            for (int c = 0; c < n; c++) {
+
+                install(M, mStructure, r, c, 0);
+
+                ans = max(ans, simulate(mSeaLevel));
+
+                uninstall(M, mStructure, r, c, 0);
+            }
+        }
+
+        return ans;
+    }
 
 
-	if (hashStructure[idx[0]][idx[1]][idx[2]][idx[3]].empty()) { return -1; }
+    HashKey fwd;
 
-	
-	for (auto region : hashStructure[idx[0]][idx[1]][idx[2]][idx[3]]) {
-		r = region[0];
-		c = region[1];
-		k = region[2];
-		putStructure(r, c, k, M, mStructure);
-		
-		cnt = 0;
-		for (int i = 0; i < islandSize; i++) {
-			riseSeaLevel(0, i, mSeaLevel);
-			riseSeaLevel(i, 0, mSeaLevel);
-			riseSeaLevel(islandSize - 1, i, mSeaLevel);
-			riseSeaLevel(i, islandSize - 1, mSeaLevel);
-		}
+    for (int i = 1; i < M; i++) {
+        fwd.key[i - 1] = mStructure[i] - mStructure[0] + OFFSET;
+    }
 
-		if ((islandSize * islandSize - cnt) > ans) {
-			ans = islandSize * islandSize - cnt;
-		}
-	}
+    if (hashStructure[fwd.key[0]][fwd.key[1]][fwd.key[2]][fwd.key[3]].length < 1) { return -1; }
 
-	return ans;
+    Node* node = hashStructure[fwd.key[0]][fwd.key[1]][fwd.key[2]][fwd.key[3]].head;
+
+    while (node) {
+        install(M, mStructure, node->row, node->col, node->dir);
+
+        ans = max(ans, simulate(mSeaLevel));
+
+        uninstall(M, mStructure, node->row, node->col, node->dir);
+        node = node->next;
+    }
+
+    return ans;
 }
