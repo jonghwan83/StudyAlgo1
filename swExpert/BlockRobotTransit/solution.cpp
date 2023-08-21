@@ -95,17 +95,6 @@ void uninstall(int M, int mStructure[], int row, int col, int dir) {
     }
 }
 
-bool hasArrived(int row, int col, int mDir) {
-
-    if (mDir == 0 && row == 0) { return true; }
-    if (mDir == 2 && row == n - 1) { return true; }
-    if (mDir == 1 && col == n - 1) { return true; }
-    if (mDir == 3 && col == 0) { return true; }
-
-    return false;
-}
-
-
 int simulate(int mDir) {
 
     nVisited++;
