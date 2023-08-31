@@ -5,285 +5,234 @@ extern int move(void);
 
 extern void turn(int mCommand);
 
-
-#include <iostream>
-
-#define MAXSIZE 64
+#define MAXN 128
 
 int drows[4] = { -1, 0, 1, 0 };
 int dcols[4] = { 0, -1, 0, 1 };
 
-int unscanned, uncleaned, cleaned, wall;
 
-int house[MAXSIZE][MAXSIZE];
-int visited[MAXSIZE][MAXSIZE];
+struct Robot {
+    int row;
+    int col;
+    int dir;
 
-int nVisited;
-
-void showHouse() {
-
-	for (int i = 0; i < MAXSIZE; i++) {
-		for (int j = 0; j < MAXSIZE; j++) {
-			printf("%d ", house[i][j]);
-		}
-		printf("\n");
-	}
-	printf("\n");
-}
-
-
-class Robot {
-public:
-	int row;
-	int col;
-	int dir;
-
-	void init() {
-		row = 1; col = 1; dir = 0;
-		house[row][col] = cleaned;
-	}
+    void init() {
+        row = MAXN / 2;
+        col = MAXN / 2;
+        dir = 0;
+    }
 };
 
 
 class Queue {
 public:
-	int length, st, ed;
-	Robot arr[MAXSIZE * MAXSIZE];
+    int st, ed, length;
+    Robot arr[MAXN * MAXN];
 
-	void init() {
-		length = 0; st = 0; ed = 0;
-	}
+    void init() {
+        st = 0; ed = 0; length = 0;
+    }
 
-	void push(int r, int c, int d) {
-		length++;
-		arr[ed].row = r; arr[ed].col = c; arr[ed].dir = d;
-		ed++;
-	}
+    void push(int row, int col, int dir) {
+        arr[ed].row = row; arr[ed].col = col; arr[ed].dir = dir;
+        ed++; length++;
+    }
 
-	Robot pop() {
-		length--;
-		return arr[st++];
-	}
+    Robot pop() {
+        length--;
+        return arr[st++];
+    }
 };
 
+int unclean = 9;
+int cleaned = 2;
+int wall = 1;
+
+
+
+int map[MAXN][MAXN];
+int visited[MAXN][MAXN];
+
+int nVisited;
 
 Robot robotInfo;
-
-int convert(int a) {
-	if (a < 0) { return a + 64; }
-	if (a >= 64) { return a - 64; }
-	return a;
-}
-
+Queue queue;
 
 void update(int a[3][3]) {
 
-	int rev[3] = { 2, 1, 0 };
+    int rev[3] = { 2, 1, 0 };
 
-	int temp[3][3];
+    int temp[3][3];
 
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
 
-			if (robotInfo.dir == 1) {
-				temp[i][j] = a[j][rev[i]];
-			}
-			else if (robotInfo.dir == 2) {
-				temp[i][j] = a[rev[i]][rev[j]];
-			}
-			else if (robotInfo.dir == 3) {
-				temp[i][j] = a[rev[j]][i];
-			}
-			else {
-				temp[i][j] = a[i][j];
-			}
-		}
-	}
+            if (robotInfo.dir == 1) {
+                temp[i][j] = a[j][rev[i]];
+            }
+            else if (robotInfo.dir == 2) {
+                temp[i][j] = a[rev[i]][rev[j]];
+            }
+            else if (robotInfo.dir == 3) {
+                temp[i][j] = a[rev[j]][i];
+            }
+            else {
+                temp[i][j] = a[i][j];
+            }
+        }
+    }
 
-	for (int i = -1; i < 2; i++) {
-		for (int j = -1; j < 2; j++) {
-			int dr = convert(robotInfo.row + i);
-			int dc = convert(robotInfo.col + j);
+    for (int i = -1; i < 2; i++) {
+        for (int j = -1; j < 2; j++) {
 
-			if (house[dr][dc] <= unscanned && temp[i + 1][j + 1] == 1) {
-				house[convert(i + robotInfo.row)][convert(j + robotInfo.col)] = wall;
-			}
-			else if (house[dr][dc] <= unscanned && temp[i + 1][j + 1] == 0) {
-				house[convert(i + robotInfo.row)][convert(j + robotInfo.col)] = uncleaned;
-			}
+            if (temp[i + 1][j + 1] == 1) {
+                map[i + robotInfo.row][j + robotInfo.col] = wall;
+            }
 
-		}
-	}
-
-	return;
+        }
+    }
 }
 
-
 void scan_norm() {
-	int around[3][3];
 
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 3; j++) {
+    int around[3][3];
 
-			int dr = convert(robotInfo.row + i - 1);
-			int dc = convert(robotInfo.col + j - 1);
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
 
-			if (house[dr][dc] <= unscanned) {
-				scan(around);
-				update(around);
-			}
-		}
-	}
+            int dr = robotInfo.row + i - 1;
+            int dc = robotInfo.col + j - 1;
+
+            if (map[dr][dc] == unclean) {
+                scan(around);
+                update(around);
+                return;
+            }
+
+        }
+    }
 
 }
 
 void turn_norm(int dest) {
 
-	int k = dest - robotInfo.dir;
-	if (k < 0) { k += 4; }
-	if (k >= 4) { k -= 4; }
+    int k = dest - robotInfo.dir;
+    if (k < 0) { k += 4; }
+    if (k >= 4) { k -= 4; }
 
-	if (k == 0) { return; }
+    if (k == 0) { return; }
 
-	turn(k);
-	robotInfo.dir = dest;
+    turn(k);
+    robotInfo.dir = dest;
 }
 
-bool move_norm(bool isForced) {
 
-	int dr = convert(robotInfo.row + drows[robotInfo.dir]);
-	int dc = convert(robotInfo.col + dcols[robotInfo.dir]);
+int move_norm(bool force) {
+    int dr = robotInfo.row + drows[robotInfo.dir];
+    int dc = robotInfo.col + dcols[robotInfo.dir];
 
-	if (house[dr][dc] <= unscanned && !isForced) {
-		scan_norm();
-	}
+    if (map[dr][dc] == wall) { return 0; }
+    if (map[dr][dc] == cleaned && !force) { return 0; }
 
+    int res = move();
 
-	if (house[dr][dc] == uncleaned || isForced) {
-		move();
-		robotInfo.row = dr;
-		robotInfo.col = dc;
-		house[dr][dc] = cleaned;
+    if (!res) {
+        map[dr][dc] = wall;
+        return 0;
+    }
 
-		return true;
-	}
-
-	return false;
+    map[dr][dc] = cleaned;
+    robotInfo.row = dr; robotInfo.col = dc;
+    return 1;
 }
 
 void go() {
-
-	while (true) {
-
-		bool result = move_norm(false);
-
-		if (!result) { break; }
-	}
-
+    while (true) {
+        int res = move_norm(false);
+        if (!res) { break; }
+    }
 }
-
-
 
 int bfs() {
-	nVisited++;
+    nVisited++;
 
-	Queue queue; queue.init();
+    queue.init();
 
-	queue.push(robotInfo.row, robotInfo.col, -1);
-	visited[robotInfo.row][robotInfo.col] = nVisited;
+    queue.push(robotInfo.row, robotInfo.col, -1);
+    visited[robotInfo.row][robotInfo.col] = nVisited;
 
-	while (queue.length > 0) {
-		Robot curr = queue.pop();
+    while (queue.length > 0) {
+        Robot curr = queue.pop();
 
-		for (int i = 0; i < 4; i++) {
-			int dr = convert(curr.row + drows[i]);
-			int dc = convert(curr.col + dcols[i]);
+        for (int i = 0; i < 4; i++) {
+            int dr = curr.row + drows[i];
+            int dc = curr.col + dcols[i];
 
-			if (visited[dr][dc] >= nVisited) { continue; }
-			if (house[dr][dc] == wall) { continue; }
+            if (map[dr][dc] == wall) { continue; }
 
-			if (curr.dir == -1) {
-				queue.push(dr, dc, i);
-			}
-			else {
-				queue.push(dr, dc, curr.dir);
-			}
+            if (visited[dr][dc] >= nVisited) { continue; }
 
-			visited[dr][dc] = nVisited;
+            if (map[dr][dc] == unclean) {
+                if (curr.dir == -1) { return i; }
+                else { return curr.dir; }
+            }
 
-			if (house[dr][dc] == uncleaned || house[dr][dc] <= unscanned) {
-				if (curr.dir == -1) { return i; }
-				else { return curr.dir; }
-			}
-		}
-	}
+            if (curr.dir == -1) {
+                queue.push(dr, dc, i);
+            }
+            else {
+                queue.push(dr, dc, curr.dir);
+            }
 
-	return -1;
+            visited[dr][dc] = nVisited;
+        }
+    }
+
+    return -1;
+}
+
+void init()
+{
+    nVisited = 0;
+
+    for (int r = 0; r < MAXN; r++) {
+        for (int c = 0; c < MAXN; c++) {
+            visited[r][c] = 0;
+        }
+    }
+
 }
 
 
 
-void init(void)
+void cleanHouse()
 {
-	unscanned = -3;
-	uncleaned = -2;
-	wall = -1;
-	cleaned = 0;
 
-	for (int i = 0; i < MAXSIZE; i++) {
-		for (int j = 0; j < MAXSIZE; j++) {
-			house[i][j] = 0;
-			visited[i][j] = 0;
-		}
-	}
+    for (int r = 0; r < MAXN; r++) {
+        for (int c = 0; c < MAXN; c++) {
 
-	robotInfo.init();
-	nVisited = 0;
+            map[r][c] = unclean;
+        }
+    }
 
-	return;
-}
+    robotInfo.init();
+    map[robotInfo.row][robotInfo.col] = cleaned;
 
+    while (true) {
+        int dr = robotInfo.row + drows[robotInfo.dir];
+        int dc = robotInfo.col + dcols[robotInfo.dir];
 
+        if (map[dr][dc] == unclean) {
+            go();
+        }
+        else if (map[dr][dc] == wall) {
+            scan_norm();
+        }
 
-void cleanHouse(void)
+        int res = bfs();
+        if (res == -1) { break; }
+        turn_norm(res);
+        move_norm(true);
+    }
 
-{
-	unscanned += 3;
-	uncleaned += 3;
-	wall += 3;
-	cleaned += 3;
-
-	house[robotInfo.row][robotInfo.col] = cleaned;
-
-
-	while (true) {
-
-		go();
-
-		scan_norm();
-
-		for (int i = 0; i < 4; i++) {
-			int dr = convert(robotInfo.row + drows[i]);
-			int dc = convert(robotInfo.col + dcols[i]);
-
-			if (house[dr][dc] == uncleaned) {
-				turn_norm(i);
-				break;
-			}
-
-			if (i == 3) {
-				int nDir = bfs();
-				if (nDir == -1) {
-					//showHouse();
-					return;
-				}
-
-				turn_norm(nDir);
-				move_norm(true);
-			}
-		}
-
-	}
-
-	return;
 }
