@@ -115,7 +115,7 @@ void bfs(int st) {
     return;
 }
 
-void dijkstra(int st, int dest) {
+void dijkstra(int st) {
     queue.init();
 
     for (int i = 0; i < cnt; i++) {
@@ -150,9 +150,6 @@ void dijkstra(int st, int dest) {
 void init(int N, int mRange, int mMap[MAX_N][MAX_N])
 
 {
-    for (int i = 0; i < 200; i++) {
-        graph[i].init();
-    }
 
     n = N;
 
@@ -184,6 +181,7 @@ void init(int N, int mRange, int mMap[MAX_N][MAX_N])
 void add(int mID, int mRow, int mCol)
 
 {
+    graph[mID].init();
 
     hashMap[mID].row = mRow;
     hashMap[mID].col = mCol;
@@ -204,7 +202,7 @@ int distance(int mFrom, int mTo)
 
 {
 
-    dijkstra(mFrom, mTo);
+    dijkstra(mFrom);
 
     if (minDistance[mTo] == INF) {
         return -1;
