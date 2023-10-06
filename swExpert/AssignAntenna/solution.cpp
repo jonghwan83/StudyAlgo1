@@ -65,15 +65,15 @@ struct HeapNode {
 class Heap {
 public:
     int length;
-    HeapNode arr[UE_NUM];
-    Coordinates antenna;
+    HeapNode arr[ANTENNA_NUM];
+    Coordinates loc;
 
     void init() { length = 0; }
 
     bool compare(int parent, int child) {
         Coordinates p = Coordinates(arr[parent].row, arr[parent].col);
         Coordinates c = Coordinates(arr[child].row, arr[child].col);
-        if (antenna - p > antenna - c) { return true;}
+        if (loc - p > loc - c) { return true;}
         return false;
     }
 
@@ -123,30 +123,25 @@ public:
 };
 
 
-Heap pQueue[ANTENNA_NUM];
+Heap pQueue[MAP_SIZE][MAP_SIZE];
 
 int cnt[ANTENNA_NUM];
-
-bool checked[UE_NUM];
-
-int nChecked;
-
-int ans_range[ANTENNA_NUM];
-int ans_assign[UE_NUM];
 
 
 void init(Coordinates antenna_list[])
 {
+    for (int r = 0; r < MAP_SIZE; r++) {
+        for (int c = 0; c < MAP_SIZE; c++) {
+            
+            pQueue[r][c].init();
+            pQueue[r][c].loc = Coordinates(r, c);
 
+            for (int i = 0; i < ANTENNA_NUM; i++) {
+                pQueue[r][c].push(antenna_list[i].y, antenna_list[i].x, i);
+            }
 
-    for (int i = 0; i < ANTENNA_NUM; i++) {
-        pQueue[i].init();
-        pQueue[i].antenna = antenna_list[i];
-
-        cnt[i] = 0;
+        }
     }
-
-    nChecked = 0;
 
 }
 
@@ -155,71 +150,42 @@ void init(Coordinates antenna_list[])
 void scanUE(Coordinates UE_list[], int antenna_range[], int assign_antenna[])
 {
 
-    if (nChecked > 0) {
-
-        for (int i = 0; i < ANTENNA_NUM; i++) {
-            antenna_range[i] = ans_range[i];
-        }
-
-        for (int i = 0; i < UE_NUM; i++) {
-            assign_antenna[i] = ans_assign[i];
-        }
-
-        return;
-
-    }
-
-    for (int i = 0; i < UE_NUM; i++) {
-
-        checked[i] = false;
-
-        for (int k = 0; k < ANTENNA_NUM; k++) {
-
-            pQueue[k].push(UE_list[i].y, UE_list[i].x, i);
-        }
-
-    }
-
-
-
-    while (nChecked < UE_NUM) {
-
-        for (int k = 0; k < ANTENNA_NUM; k++) {
-
-            while (cnt[k] < 100 && pQueue[k].length > 0) {
-
-                HeapNode curr = pQueue[k].pop();
-
-                if (checked[curr.id]) { continue; }
-
-                checked[curr.id] = true;
-
-                nChecked++;
-
-                assign_antenna[curr.id] = k;
-
-                cnt[k]++;
-
-                Coordinates c = Coordinates(curr.row, curr.col);
-
-                antenna_range[k] = max(antenna_range[k], c - pQueue[k].antenna + 45);
-
-                antenna_range[k] = min(antenna_range[k], 199);
-
-                break;
-
-            }
-
-        }
-
-    }
+    HeapNode temp[ANTENNA_NUM];
+    int tIdx;
 
     for (int i = 0; i < ANTENNA_NUM; i++) {
-        ans_range[i] = antenna_range[i];
+        cnt[i] = 0;
     }
 
     for (int i = 0; i < UE_NUM; i++) {
-        ans_assign[i] = assign_antenna[i];
+
+        tIdx = 0;
+
+        int row = UE_list[i].y; int col = UE_list[i].x;
+
+        while (pQueue[row][col].length > 0) {
+            HeapNode curr = pQueue[row][col].pop();
+            
+            temp[tIdx++] = curr;
+
+            if (cnt[curr.id] >= ANTENNA_CAPA) { continue; }
+
+            cnt[curr.id]++;
+
+            assign_antenna[i] = curr.id;
+
+            Coordinates ant = Coordinates(curr.row, curr.col);
+
+            antenna_range[curr.id] = max(antenna_range[curr.id], pQueue[row][col].loc - ant + 4);
+            antenna_range[curr.id] = min(antenna_range[curr.id], 199);
+
+            break;
+        }
+
+        for (int t = t; t < tIdx; t++) {
+            pQueue[row][col].push(temp[t].row, temp[t].col, temp[t].id);
+        }
+
     }
 
 }
