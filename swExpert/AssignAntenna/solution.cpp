@@ -73,12 +73,12 @@ public:
     bool compare(int parent, int child) {
         Coordinates p = Coordinates(arr[parent].row, arr[parent].col);
         Coordinates c = Coordinates(arr[child].row, arr[child].col);
-        if (loc - p > loc - c) { return true;}
+        if (loc - p > loc - c) { return true; }
         return false;
     }
 
     void push(int r, int c, int i) {
-        HeapNode node = {r, c, i };
+        HeapNode node = { r, c, i };
 
         int idx = length;
         arr[length++] = node;
@@ -132,7 +132,7 @@ void init(Coordinates antenna_list[])
 {
     for (int r = 0; r < MAP_SIZE; r++) {
         for (int c = 0; c < MAP_SIZE; c++) {
-            
+
             pQueue[r][c].init();
             pQueue[r][c].loc = Coordinates(r, c);
 
@@ -165,7 +165,7 @@ void scanUE(Coordinates UE_list[], int antenna_range[], int assign_antenna[])
 
         while (pQueue[row][col].length > 0) {
             HeapNode curr = pQueue[row][col].pop();
-            
+
             temp[tIdx++] = curr;
 
             if (cnt[curr.id] >= ANTENNA_CAPA) { continue; }
@@ -182,7 +182,7 @@ void scanUE(Coordinates UE_list[], int antenna_range[], int assign_antenna[])
             break;
         }
 
-        for (int t = t; t < tIdx; t++) {
+        for (int t = 0; t < tIdx; t++) {
             pQueue[row][col].push(temp[t].row, temp[t].col, temp[t].id);
         }
 
