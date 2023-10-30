@@ -2,10 +2,17 @@ from heapq import heappush, heappop
 
 MAXFILE = 12001
 
+SUBN = 5001
+
 class Range:
     def __init__(self, left, right):
         self.left = left
         self.right = right
+
+
+class Partition:
+    def __init__(self):
+        self.id = set()
 
 
 class File:
@@ -23,7 +30,6 @@ class File:
         self.piece.append(rng)
             
 
-
 def overlap(a : Range, b : Range):
     ans = Range(0, 0)
     ans.left = max(a.left, b.left)
@@ -38,6 +44,14 @@ empties = []
 
 hashID = {}
 
+ptts = [Partition() for _ in range(SUBN + 1)]
+
+
+def push_ptr(rng: Range, mId):
+    st = rng.left / SUBN
+    ed = rng.right / SUBN
+
+
 
 def init(N):
     global space, fIdx
@@ -51,6 +65,9 @@ def init(N):
     heappush(empties, [1, N + 1])
 
     hashID.clear()
+
+    for i in range(SUBN + 1):
+        ptts[i] = Partition()
 
     return
 
@@ -90,6 +107,12 @@ def add(mId, mSize):
         if (ovl.right < empty.right and mSize == 0):
             heappush(empties, [ovl.right, empty.right])
 
+        st = int(ovl.left / SUBN)
+        ed = int(ovl.right / SUBN)
+
+        for i in range(st, ed + 1):
+            ptts[i].id.add(idx)
+
     return files[idx].piece[0].left
 
 
@@ -117,14 +140,29 @@ def count(mStart, mEnd):
 
     blk = Range(mStart, mEnd + 1)
 
-    for i in range(1, fIdx, 1):
+    visited = {}
 
-        for rng in files[i].piece:
+    st = int(mStart / SUBN)
+    ed = int(mEnd / SUBN)
+
+    for i in range(st, ed + 1, 1):
+        
+        for idx in ptts[i].id:
+
+            if visited.get(idx):
+                continue
+
+            if files[idx].size == 0:
+                continue
             
-            ovl = overlap(rng, blk)
+            for rng in files[idx].piece:
 
-            if ovl.right > ovl.left:
-                ans += 1
-                break
+                ovl = overlap(rng, blk)
 
+                if ovl.right > ovl.left:
+                    ans += 1
+                    visited[idx] = True
+                    break
+            
     return ans
+    
