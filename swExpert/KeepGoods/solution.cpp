@@ -1,7 +1,7 @@
 
 #define MAXN 100'000
 
-#define SUBN 1000
+#define SUBN 400
 
 int min(int a, int b)
 {
