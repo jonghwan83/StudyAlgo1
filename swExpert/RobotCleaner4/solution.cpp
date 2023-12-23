@@ -10,6 +10,9 @@ extern void turn(int mCommand);
 int drows[4] = { -1, 0, 1, 0 };
 int dcols[4] = { 0, -1, 0, 1 };
 
+int min(int a, int b) { return a < b ? a : b; }
+int max(int a, int b) { return a > b ? a : b; }
+
 
 struct Robot {
     int row;
@@ -44,11 +47,10 @@ public:
     }
 };
 
-int unclean = 9;
+int unknown = 9;
+int unclean = 0;
 int cleaned = 2;
 int wall = 1;
-
-
 
 int map[MAXN][MAXN];
 int visited[MAXN][MAXN];
@@ -57,6 +59,61 @@ int nVisited;
 
 Robot robotInfo;
 Queue queue;
+
+int left, right, up, down;
+
+int mapCopied[4][MAXN / 2][MAXN / 2];
+
+int reverse[64];
+
+bool isCopied;
+
+void updateCorner(int row, int col)
+{
+    left = min(left, col);
+    right = max(right, col);
+    up = min(up, row);
+    down = max(down, row);
+}
+
+int compare()
+{
+    if (right - left < MAXN / 4 || down - up < MAXN / 4)
+        return -1;
+
+    bool flag[4] = { true, true, true, true };
+    int res = -1;
+
+    for (int k = 0; k < 4; k++)
+    {
+        for (int r = up; r <= down; r++)
+            for (int c = left; c <= right; c++)
+            {
+                if (map[r][c] == wall && mapCopied[k][r - up][c - left] != wall)
+                {
+                    flag[k] = false;
+                    break;
+                }
+                if (!flag[k]) { break; }
+            }
+
+        if (flag[k]) { res = k; }
+    }
+
+    return res;
+}
+
+void copy(int dir)
+{
+
+    for (int r = 0; r < MAXN / 2; r++)
+        for (int c = 0; c < MAXN / 2; c++)
+        {
+            if (map[up + r][left + c] == unknown)
+                map[up + r][left + c] = mapCopied[dir][r][c];
+        }
+
+}
 
 void update(int a[3][3]) {
 
@@ -87,6 +144,7 @@ void update(int a[3][3]) {
 
             if (temp[i + 1][j + 1] == 1) {
                 map[i + robotInfo.row][j + robotInfo.col] = wall;
+                updateCorner(i + robotInfo.row, j + robotInfo.col);
             }
 
         }
@@ -103,15 +161,14 @@ void scan_norm() {
             int dr = robotInfo.row + i - 1;
             int dc = robotInfo.col + j - 1;
 
-            if (map[dr][dc] == unclean) {
+            if (map[dr][dc] == unknown)
+            {
                 scan(around);
                 update(around);
-                return;
             }
 
         }
     }
-
 }
 
 void turn_norm(int dest) {
@@ -172,7 +229,7 @@ int bfs() {
 
             if (visited[dr][dc] >= nVisited) { continue; }
 
-            if (map[dr][dc] == unclean) {
+            if (map[dr][dc] == unknown || map[dr][dc] == unclean) {
                 if (curr.dir == -1) { return i; }
                 else { return curr.dir; }
             }
@@ -198,22 +255,31 @@ void init()
     for (int r = 0; r < MAXN; r++) {
         for (int c = 0; c < MAXN; c++) {
             visited[r][c] = 0;
+
+            if (r < MAXN / 2 && c < MAXN / 2)
+            {
+                for (int i = 0; i < 4; i++)
+                    mapCopied[i][r][c] = unknown;
+            }
         }
     }
+
+    for (int i = 0; i < 64; i++)
+        reverse[i] = 63 - i;
 
 }
 
 
+void cleanHouse() {
+    left = up = MAXN;
+    right = down = 0;
 
-void cleanHouse()
-{
+    isCopied = false;
 
-    for (int r = 0; r < MAXN; r++) {
-        for (int c = 0; c < MAXN; c++) {
+    for (int r = 0; r < MAXN; r++)
+        for (int c = 0; c < MAXN; c++)
+            map[r][c] = unknown;
 
-            map[r][c] = unclean;
-        }
-    }
 
     robotInfo.init();
     map[robotInfo.row][robotInfo.col] = cleaned;
@@ -222,17 +288,58 @@ void cleanHouse()
         int dr = robotInfo.row + drows[robotInfo.dir];
         int dc = robotInfo.col + dcols[robotInfo.dir];
 
-        if (map[dr][dc] == unclean) {
+        if (map[dr][dc] == unknown || map[dr][dc] == unclean)
             go();
-        }
-        else if (map[dr][dc] == wall) {
+
+        else if (map[dr][dc] == wall)
             scan_norm();
-        }
+
 
         int res = bfs();
         if (res == -1) { break; }
         turn_norm(res);
         move_norm(true);
+
+        if (mapCopied[0][0][0] != unknown)
+        {
+            int cmp = compare();
+            if (cmp > -1 && !isCopied)
+            {
+                copy(cmp);
+                isCopied = true;
+            }
+        }
+
+    }
+
+    if (mapCopied[0][0][0] == unknown) {
+        for (int r = up; r <= down; r++)
+            for (int c = left; c <= right; c++) {
+                if (map[r][c] == unknown)
+                {
+                    mapCopied[0][r - up][c - left] = 1;
+                    mapCopied[1][c - left][reverse[r - up]] = 1;
+                    mapCopied[2][reverse[r - up]][reverse[c - left]] = 1;
+                    mapCopied[3][reverse[c - left]][r - up] = 1;
+                }
+
+                else if (map[r][c] == 2)
+                {
+                    mapCopied[0][r - up][c - left] = unclean;
+                    mapCopied[1][c - left][reverse[r - up]] = unclean;
+                    mapCopied[2][reverse[r - up]][reverse[c - left]] = unclean;
+                    mapCopied[3][reverse[c - left]][r - up] = unclean;
+                }
+
+                else
+                {
+                    mapCopied[0][r - up][c - left] = map[r][c];
+                    mapCopied[1][c - left][reverse[r - up]] = map[r][c];
+                    mapCopied[2][reverse[r - up]][reverse[c - left]] = map[r][c];
+                    mapCopied[3][reverse[c - left]][r - up] = map[r][c];
+                }
+
+            }
     }
 
 }

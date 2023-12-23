@@ -52,7 +52,7 @@ static const int SCAN_COST = 20;
 
 
 
-static const long long PENALTY = 1'000'000'000;
+static const long long PENALTY = 1000000000;
 
 
 
