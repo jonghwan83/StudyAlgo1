@@ -104,13 +104,3 @@ int main(void)
     printf("SCORE: %.5f\n", RATE + TIME / 100000.);
 
 }
-
-
-int encode(char* src, char* paper, int papern)
-{
-    return 0;
-}
-void decode(char* dest, char* src, int s)
-{
-
-}
