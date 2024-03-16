@@ -1,4 +1,3 @@
-#include <iostream>
 
 #define MAXN 3001
 
