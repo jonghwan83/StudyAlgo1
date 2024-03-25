@@ -158,25 +158,26 @@ void scanUE(Coordinates UE_list[], int antenna_range[], int assign_antenna[])
 
         int min_dist2 = MAP_SIZE * MAP_SIZE * ANTENNA_NUM;
 
+        int min_dist3 = MAP_SIZE * MAP_SIZE * ANTENNA_NUM;
+
+        int min_dist4 = MAP_SIZE * MAP_SIZE * ANTENNA_NUM;
+
         for (int antenna = 0; antenna < ANTENNA_NUM; antenna++)
         {
             if (capa[antenna] >= ANTENNA_CAPA) { continue; }
 
             int dist = antenna_list[antenna] - UE_list[ue];
 
-            if (dist < min_dist)
-            {
-                min_dist = dist;
-            }
+            if (dist < min_dist) { min_dist = dist; }
 
-            if (min_dist < dist && dist < min_dist2)
-            {
-                min_dist2 = dist;
-            }
+            else if (min_dist < dist && dist < min_dist2) { min_dist2 = dist; }
 
+            else if (min_dist2 < dist && dist < min_dist3) { min_dist3 = dist; }
+
+            else if (min_dist3 < dist && dist < min_dist4) { min_dist4 = dist; }
         }
 
-        pQueue.push(min_dist + min_dist2, ue);
+        pQueue.push(min_dist + min_dist2 + min_dist3 + min_dist4, ue);
 
 //        assign_antenna[ue] = antenna_id;
 //        antenna_range[antenna_id] = max(antenna_range[antenna_id], min_dist + 4);
