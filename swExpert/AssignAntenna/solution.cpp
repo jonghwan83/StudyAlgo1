@@ -121,16 +121,26 @@ public:
 
 Coordinates antenna_list[ANTENNA_NUM];
 
+Coordinates ue_list_backup[UE_NUM];
+
 int capa[ANTENNA_NUM];
 
 int subtask;
 
+int move[UE_NUM];  // 0: up, 1: left, 2: down, 3: right
+
+int drows[5] = { -1, 0, 1, 0, 0 };
+int dcols[5] = { 0, -1, 0, 1, 0 };
+
 Heap pQueue;
+
 
 void init(Coordinates _antenna_list[])
 {
-    subtask = 0;
 
+
+    subtask = 0;
+    
     for (int i = 0; i < ANTENNA_NUM; i++)
     {
         antenna_list[i] = _antenna_list[i];
@@ -141,6 +151,7 @@ void init(Coordinates _antenna_list[])
 
 void scanUE(Coordinates UE_list[], int antenna_range[], int assign_antenna[])
 {
+
     for (int i = 0; i < ANTENNA_NUM; i++)
     {
         capa[i] = 0;
@@ -175,13 +186,11 @@ void scanUE(Coordinates UE_list[], int antenna_range[], int assign_antenna[])
             else if (min_dist2 < dist && dist < min_dist3) { min_dist3 = dist; }
 
             else if (min_dist3 < dist && dist < min_dist4) { min_dist4 = dist; }
+
         }
 
         pQueue.push(min_dist + min_dist2 + min_dist3 + min_dist4, ue);
 
-//        assign_antenna[ue] = antenna_id;
-//        antenna_range[antenna_id] = max(antenna_range[antenna_id], min_dist + 4);
-//        capa[antenna_id]++;
     }
 
     while (pQueue.length > 0)
@@ -202,24 +211,65 @@ void scanUE(Coordinates UE_list[], int antenna_range[], int assign_antenna[])
 
                 antenna_id = antenna;
             }
+
         }
 
         assign_antenna[curr.ue] = antenna_id;
 
         capa[antenna_id]++;
-    }
 
+        if (subtask == 0)
+        {
+            ue_list_backup[curr.ue] = UE_list[curr.ue];
+        }
+
+        else
+        {
+            int drow = UE_list[curr.ue].y - ue_list_backup[curr.ue].y;
+            
+            int dcol = UE_list[curr.ue].x - ue_list_backup[curr.ue].x;
+
+            if (drow < 0 && dcol == 0) { move[curr.ue] = 0; }
+            else if (drow == 0 && dcol < 0) { move[curr.ue] = 1; }
+            else if (drow > 0 && dcol == 0) { move[curr.ue] = 2; }
+            else if (drow == 0 && dcol > 0) { move[curr.ue] = 3; }
+            else if (drow == 0 && dcol == 0) { move[curr.ue] = 4; }
+            else { move[curr.ue] = -1; }
+
+            ue_list_backup[curr.ue] = UE_list[curr.ue];
+        }
+
+    }
 
     for (int ue = 0; ue < UE_NUM; ue++)
     {
         int antenna = assign_antenna[ue];
 
         int dist = antenna_list[antenna] - UE_list[ue];
-
-        if (antenna_range[antenna] < dist + 4)
+    
+        if (subtask == 0 || move[ue] == -1)
         {
-            antenna_range[antenna] = dist + 4;
+            antenna_range[antenna] = max(antenna_range[antenna], dist + 4);
         }
+        else
+        {
+            Coordinates new_one;
+            new_one.y = UE_list[ue].y + drows[move[ue]] * 4;
+            new_one.x = UE_list[ue].x + dcols[move[ue]] * 4;
+
+            if (new_one.y >= MAP_SIZE || new_one.x >= MAP_SIZE || new_one.y < 0 || new_one.x < 0)
+            {
+                antenna_range[antenna] = max(antenna_range[antenna], dist + 4);
+            }
+            else
+            {
+                dist = max(antenna_list[antenna] - new_one, antenna_list[antenna] - UE_list[ue]);
+
+                antenna_range[antenna] = max(antenna_range[antenna], dist);
+            }
+
+        }
+        
     }
 
     subtask++;
