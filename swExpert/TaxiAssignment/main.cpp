@@ -220,31 +220,3 @@ int main()
 
     return 0;
 }
-
-
-
-
-struct Coordinate
-
-{
-
-    int y, x;
-};
-
-struct Passenger
-
-{
-
-    Coordinate departure;
-
-    Coordinate arrival;
-};
-
-extern bool assign_driver(int driverID, int passengerSize, int passengerIDs[]);
-
-void run(int N, int M, Coordinate mDriver[], int K, Passenger mPassenger[])
-
-{
-
-    return;
-}
