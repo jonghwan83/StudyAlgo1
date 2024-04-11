@@ -84,16 +84,16 @@ void run(int N, int M, Coordinate mDriver[], int K, Passenger mPassenger[])
     }
     
     
-    int sum_score = 0;
+    int tc_score = 0;
     
     for (int driver = 0; driver < M; driver++)
     {
         assign_driver(driver, passengerSize[driver], passengerIDs[driver]);
         
-        sum_score = max(sum_score, score[driver]);
+        tc_score = max(tc_score, score[driver]);
     }
     
-    printf("bottom line: %d\n", sum_score);
+    printf("bottom line: %d\n", tc_score);
     
     return;
 }
