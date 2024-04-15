@@ -49,7 +49,7 @@ int score[MAX_DRIVER_COUNT];
 void run(int N, int M, Coordinate mDriver[], int K, Passenger mPassenger[])
 {
     
-    for (int driver = 0; driver < M; driver++)
+    for (int driver = 0; driver < MAX_DRIVER_COUNT; driver++)
     {
         passengerSize[driver] = 0;
         
@@ -65,22 +65,33 @@ void run(int N, int M, Coordinate mDriver[], int K, Passenger mPassenger[])
         
         int close_driver = -1;
         
+        int min_score = 4 * N * 100;
+        
         for (int driver = 0; driver < M; driver++)
         {
             int dist = getDistance(mPassenger[passenger].departure, driverLocation[driver]);
             
-            if (dist < min_dist)
+            if (dist < min_dist && score[driver] == 0)
             {
                 min_dist = dist;
                 close_driver = driver;
             }
+            else if (dist < min_dist && score[driver] < min_score && score[driver] > 0)
+            {
+                min_dist = dist;
+                close_driver = driver;
+                min_score = score[driver];
+            }
+            
         }
         
         passengerIDs[close_driver][passengerSize[close_driver]++] = passenger;
         
+        score[close_driver] += (getDistance(mPassenger[passenger].departure, mPassenger[passenger].arrival)
+                                + getDistance(driverLocation[close_driver], mPassenger[passenger].departure));
+        
         driverLocation[close_driver] = mPassenger[passenger].arrival;
         
-        score[close_driver] = max(score[close_driver], getDistance(mPassenger[passenger].departure, mPassenger[passenger].arrival));
     }
     
     
@@ -93,7 +104,7 @@ void run(int N, int M, Coordinate mDriver[], int K, Passenger mPassenger[])
         tc_score = max(tc_score, score[driver]);
     }
     
-    printf("bottom line: %d\n", tc_score);
+    printf("tc score: %d\n", tc_score);
     
     return;
 }
