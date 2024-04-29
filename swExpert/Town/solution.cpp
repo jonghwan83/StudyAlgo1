@@ -76,10 +76,17 @@ int emptyInTown[MAXHOUSE];
 LinkedList map[MAPSIZE][MAPSIZE];
 
 
-bool mergeTown(int a, int b)
+int mergeTown(int a, int b)
 {
-    if (a == b) { return false; }
-    if (towns[b].length == 0) { return false; }
+    if (a == b) { return -1; }
+    if (towns[b].length == 0 || towns[a].length == 0) { return -1; }
+    
+    if (towns[b].length > towns[a].length)
+    {
+        int temp = a;
+        a = b;
+        b = temp;
+    }
     
     int pop = towns[b].length - emptyInTown[b];
     
@@ -104,7 +111,7 @@ bool mergeTown(int a, int b)
     
     if (pop <= 0) { return false; }
     
-    return true;
+    return a;
 }
 
 int findByID(int mId)
@@ -157,7 +164,7 @@ void init(int L, int R) {
 
 
 int add(int mId, int mX, int mY) {
-
+    
     int key = mId % TABLE;
     
     hashID[key].push(mId, nHouse);
@@ -165,14 +172,14 @@ int add(int mId, int mX, int mY) {
     houses[nHouse] = { mId, mX, mY };
     
     houses[nHouse].isRemoved = false;
-
+    
     
     int nClose = 0;
     int closeTown[100];
     
     int row = mX / range;
     int col = mY / range;
-  
+    
     
     for (int i = 0; i < 9; i++)
     {
@@ -209,14 +216,19 @@ int add(int mId, int mX, int mY) {
     }
     else
     {
+        int mainTown = closeTown[0];
         
         for (int i = 1; i < nClose; i++)
         {
-            mergeTown(closeTown[0], closeTown[i]);
+            int res = mergeTown(mainTown, closeTown[i]);
+            if (res > -1)
+            {
+                mainTown = res;
+            }
         }
         
-        towns[closeTown[0]].push(mId, nHouse);
-        houses[nHouse].town = closeTown[0];
+        towns[mainTown].push(mId, nHouse);
+        houses[nHouse].town = mainTown;
     }
     
     
