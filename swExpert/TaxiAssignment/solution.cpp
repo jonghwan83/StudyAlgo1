@@ -24,6 +24,7 @@ static const int MAX_PASSENGER_COUNT = 10'000;
 
 static const int MAX_DRIVER_COUNT = 100;
 
+static const int MAP_SIZE = 100;
 
 int max(int a, int b) { return a > b? a : b; }
 
@@ -91,8 +92,8 @@ public:
                     child = right;
                 else
                     child = left;
-            else
-                child = left;
+                else
+                    child = left;
             
             if (compare(idx, child))
             {
@@ -109,6 +110,33 @@ public:
 };
 
 
+class Queue
+{
+public:
+    Coordinate arr[MAP_SIZE * MAP_SIZE];
+    int st, ed, length;
+    
+    void init()
+    {
+        st = ed = length = 0;
+    }
+    
+    void push(int y, int x)
+    {
+        length++;
+        arr[ed++] = { y, x };
+    }
+    
+    Coordinate pop()
+    {
+        length--;
+        return arr[st++];
+    }
+    
+};
+
+
+
 Heap pQueue[MAX_DRIVER_COUNT];
 
 bool finished[MAX_PASSENGER_COUNT];
@@ -122,21 +150,102 @@ Coordinate driverLocation[MAX_DRIVER_COUNT];
 
 int score[MAX_DRIVER_COUNT];
 
+int passengerOnMap[MAP_SIZE][MAP_SIZE][1000];
+int cntOnMap[MAP_SIZE][MAP_SIZE];
+
+
+Queue queue;
+int visited[MAP_SIZE][MAP_SIZE];
+int nVisited;
+
+int subsize;
+
+void bfs(int driver, Passenger mPassenger[])
+{
+    int drows[4] = { -1, 0, 1, 0 };
+    int dcols[4] = { 0, -1, 0, 1 };
+    
+    nVisited++;
+    
+    queue.init();
+
+    int y = driverLocation[driver].y / subsize;
+    int x = driverLocation[driver].x / subsize;
+    
+    queue.push(y, x);
+    visited[y][x] = nVisited;
+    
+    for (int p = 0; p < cntOnMap[y][x]; p++)
+    {
+        int psger = passengerOnMap[y][x][p];
+        if (!finished[psger])
+        {
+            int dist = getDistance(driverLocation[driver], mPassenger[psger].departure);
+            pQueue[driver].push(dist, psger);
+        }
+        
+    }
+    
+    while (queue.length > 0)
+    {
+        Coordinate curr = queue.pop();
+        
+        for (int i = 0; i < 4; i++)
+        {
+            int dy = curr.y + drows[i];
+            int dx = curr.x + dcols[i];
+            
+            if (dx < 0 || dy < 0) { continue; }
+            if (dx >= MAP_SIZE || dy >= MAP_SIZE) { continue; }
+            if (visited[dy][dx] >= nVisited) { continue; }
+            
+            for (int p = 0; p < cntOnMap[dy][dx]; p++)
+            {
+                int psger = passengerOnMap[dy][dx][p];
+                if (!finished[psger])
+                {
+                    int dist = getDistance(driverLocation[driver], mPassenger[psger].departure);
+                    pQueue[driver].push(dist, psger);
+                }
+                
+            }
+            
+            queue.push(dy, dx);
+            visited[dy][dx] = nVisited;
+            
+            if (pQueue[driver].length > 100)
+            {
+                return;
+            }
+            
+        }
+        
+    }
+    
+}
+
+
+
 void run(int N, int M, Coordinate mDriver[], int K, Passenger mPassenger[])
 {
+    nVisited = 0;
     
+    subsize = N / MAP_SIZE;
     
-//    for (int driver = 0; driver < M; driver++)
-//    {
-//        passengerSize[driver] = 0;
-//        
-//        driverLocation[driver] = mDriver[driver];
-//        
-//        score[driver] = 0;
-//        
-//        pQueue[driver].init();
-//    }
+    for (int row = 0; row < MAP_SIZE; row++)
+        for (int col = 0; col < MAP_SIZE; col++)
+        {
+            cntOnMap[row][col] = 0;
+            visited[row][col] = 0;
+        }
     
+    for (int passenger = 0; passenger < K; passenger++)
+    {
+        int row = mPassenger[passenger].departure.y / subsize;
+        int col = mPassenger[passenger].departure.x / subsize;
+        
+        passengerOnMap[row][col][cntOnMap[row][col]++] = passenger;
+    }
     
     
     for (int driver = 0; driver < M; driver++)
@@ -174,13 +283,10 @@ void run(int N, int M, Coordinate mDriver[], int K, Passenger mPassenger[])
         
         for (int driver = 0; driver < M; driver++)
         {
-            int wait_passenger = pQueue[driver].arr[0].id;
             
-            int travel = getDistance(mPassenger[wait_passenger].departure, mPassenger[wait_passenger].arrival);
-            
-            if (pQueue[driver].arr[0].distance + score[driver] + travel < min_dist)
+            if (pQueue[driver].arr[0].distance + score[driver] < min_dist)
             {
-                min_dist = pQueue[driver].arr[0].distance + score[driver] + travel;
+                min_dist = pQueue[driver].arr[0].distance + score[driver];
                 curr_driver = driver;
             }
         }
@@ -190,17 +296,10 @@ void run(int N, int M, Coordinate mDriver[], int K, Passenger mPassenger[])
         
         int passenger = curr.id;
         
-        while (finished[passenger])
-        {
-            curr = pQueue[curr_driver].pop();
-            
-            passenger = curr.id;
-        }
-        
         passengerIDs[curr_driver][passengerSize[curr_driver]++] = passenger;
         
         score[curr_driver] += (getDistance(mPassenger[passenger].departure, mPassenger[passenger].arrival)
-                                + getDistance(driverLocation[curr_driver], mPassenger[passenger].departure));
+                               + getDistance(driverLocation[curr_driver], mPassenger[passenger].departure));
         
         driverLocation[curr_driver] = mPassenger[passenger].arrival;
         
@@ -210,53 +309,22 @@ void run(int N, int M, Coordinate mDriver[], int K, Passenger mPassenger[])
         
         pQueue[curr_driver].init();
         
-        for (int p = 0; p < K; p++)
+        bfs(curr_driver, mPassenger);
+        
+        for (int driver = 0; driver < M; driver++)
         {
-            if (!finished[p])
+            while (pQueue[driver].length > 0 && finished[pQueue[driver].arr[0].id])
             {
-                int dist = getDistance(driverLocation[curr_driver], mPassenger[p].departure);
-                
-                pQueue[curr_driver].push(dist, p);
+                pQueue[driver].pop();
+            }
+            
+            if (pQueue[driver].length == 0)
+            {
+                bfs(driver, mPassenger);
             }
         }
         
     }
-    
-    
-//    for (int passenger = 0; passenger < K; passenger++)
-//    {
-//        int min_dist = 4 * N;
-//        
-//        int close_driver = -1;
-//        
-//        int min_score = 4 * N * 100;
-//        
-//        for (int driver = 0; driver < M; driver++)
-//        {
-//            int dist = getDistance(mPassenger[passenger].departure, driverLocation[driver]);
-//            
-//            if (dist < min_dist && score[driver] == 0)
-//            {
-//                min_dist = dist;
-//                close_driver = driver;
-//            }
-//            else if (dist < min_dist && score[driver] < min_score && score[driver] > 0)
-//            {
-//                min_dist = dist;
-//                close_driver = driver;
-//                min_score = score[driver];
-//            }
-//            
-//        }
-//        
-//        passengerIDs[close_driver][passengerSize[close_driver]++] = passenger;
-//        
-//        score[close_driver] += (getDistance(mPassenger[passenger].departure, mPassenger[passenger].arrival)
-//                                + getDistance(driverLocation[close_driver], mPassenger[passenger].departure));
-//        
-//        driverLocation[close_driver] = mPassenger[passenger].arrival;
-//        
-//    }
     
     
     int tc_score = 0;
