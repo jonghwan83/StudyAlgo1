@@ -396,7 +396,7 @@ int main()
 
             SCORE = PENALTY;
 
-            // break;
+            break;
 
         }
 

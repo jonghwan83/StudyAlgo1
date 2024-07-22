@@ -134,7 +134,7 @@ void clearBuffer()
                     germData[idx].similarity2 = buffer[coreIdx][bufIdx + 2];
                 }
 
-                if (germData[idx].similarity1 >= 370 || germData[idx].similarity2 >= 370)
+                if (germData[idx].similarity1 > 180 || germData[idx].similarity2 > 180)
                     germData[idx].isTarget = 0;
 
                 if (germData[idx].similarity2 == 0 || germData[idx].similarity1 == 0)
@@ -280,7 +280,7 @@ void process()
 
             if (targetColor > -1)
                 if (germData[i].color != targetColor) { continue; }
-            if (germData[i].similarity1 >= 370) { continue; }
+            if (germData[i].similarity1 > 180) { continue; }
             if (germData[i].similarity1 == -1) { break; }
             if (germData[i].size != targetSize) { break; }
 
@@ -342,7 +342,7 @@ void process()
     for (int i = currCheckIdx; i < MAX_GERM; i++)
     {
         if (germData[i].color != targetColor) { continue; }
-        if (germData[i].similarity1 >= 370) { continue; }
+        if (germData[i].similarity1 > 180) { continue; }
 
 
         int degree = germData[i].similarity1;
@@ -359,7 +359,6 @@ void process()
 
     gpu_process(buffer);
     clearBuffer();
-
 
     result(res);
 }
