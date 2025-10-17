@@ -97,7 +97,7 @@ int calculate(int sCity, int eCity, int M, int mStopover[]) {
 	for(int i = 0; i < M; i++)
 	{
 		getMaxCost(sCity, mStopover[i]);
-		if(maxCost[i] == 0) return -1;
+		if(maxCost[mStopover[i]] == 0) return -1;
 		res = std::min(res, maxCost[mStopover[i]]);	
 	}
 
