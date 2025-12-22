@@ -116,7 +116,7 @@ std::pair<int, std::vector<int>> simulate(Coordinates mRider, Delivery mDeliveri
             deliver_id = tops[rand() % k];
         }
         
-//        deliver(deliver_id);
+        //        deliver(deliver_id);
         time_left -= getDistance(pos, mDeliveries[deliver_id].src);
         time_left -= getDistance(mDeliveries[deliver_id].src, mDeliveries[deliver_id].dest);
         
@@ -134,9 +134,9 @@ std::pair<int, std::vector<int>> simulate(Coordinates mRider, Delivery mDeliveri
 
 void process(Coordinates mRider, Delivery mDeliveries[])
 {
-    std::vector<float> prob = { 0.99 };
+    std::vector<float> prob = { 0.6, 0.7, 0.8, 0.9 };
     
-    std::vector<int> rank = { 9, 12, 15 };
+    std::vector<int> rank = { 9, 12, 15, 18, 21, 24, 27, 30 };
     
     std::pair<int, std::vector<int>> res;
     res.first = 0;
@@ -151,7 +151,7 @@ void process(Coordinates mRider, Delivery mDeliveries[])
             if(temp.first > res.first)
             {
                 res = temp;
-//                std::cout << p << " " << k << "\n";
+                //                std::cout << p << " " << k << "\n";
             }
         }
     }
@@ -161,3 +161,4 @@ void process(Coordinates mRider, Delivery mDeliveries[])
         deliver(id);
     }
 }
+
